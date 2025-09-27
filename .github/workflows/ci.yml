@@ -1,0 +1,31 @@
+# .github/workflows/ci.yml (add a second job)
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci || npm install
+      - run: npm run compile
+      - run: npm test
+
+  slither:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci || npm install
+      - run: npm run compile
+      - name: Install Slither
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install slither-analyzer
+      - name: Run Slither (fail on High/Medium)
+        run: |
+          slither . \
+            --solc-remaps @openzeppelin=node_modules/@openzeppelin \
+            --exclude-informational \
+            --fail-high \
+            --fail-medium

@@ -34,6 +34,9 @@ npx hardhat compile
 npx hardhat test
 ```
 
+## Secrets
+Never commit `.env`.
+
 ## License
 This project is licensed under the GPL License
 
