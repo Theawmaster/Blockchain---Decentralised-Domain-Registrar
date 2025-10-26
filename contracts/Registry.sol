@@ -36,7 +36,6 @@ contract Registry is IRegistry {
     }
 
     function ownerOf(string calldata name) external view override returns (address) {
-        bytes32 namehash = keccak256(abi.encodePacked(name));
-        return _ownerOf[namehash];
+        return _ownerOf[keccak256(abi.encodePacked(name))];
     }
 }

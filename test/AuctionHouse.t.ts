@@ -1,39 +1,127 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("AuctionHouse (skeleton)", () => {
-  it("stores constructor params and accepts commits", async () => {
+describe("AuctionHouse - Commit Phase", () => {
+  it("accepts first commit, sets auctionEnd, and prevents duplicates", async () => {
+    const [deployer, alice, bob] = await ethers.getSigners();
+
+    const Reg = await ethers.getContractFactory("Registry");
+    const reg = await Reg.deploy();
+    await reg.waitForDeployment();
+
+    const AH = await ethers.getContractFactory("AuctionHouse");
+    const reserve = 1n, duration = 1000n;
+    const ah = await AH.deploy(await reg.getAddress(), reserve, duration);
+    await ah.waitForDeployment();
+
+    const name = "alice";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+    const salt = ethers.encodeBytes32String("randomSalt");
+    const bid = 123n;
+
+    const bidHash = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        [name, bid, salt, alice.address]
+      )
+    );
+
+    const tx = ah.connect(alice).commitBid(namehash, bidHash, { value: 1n });
+    await expect(tx).to.emit(ah, "BidCommitted").withArgs(namehash, alice.address);
+
+    const endTime = await ah.auctionEnd(namehash);
+    expect(endTime).to.be.greaterThan(0n);
+
+    await expect(
+      ah.connect(alice).commitBid(namehash, bidHash, { value: 1n })
+    ).to.be.revertedWith("already committed");
+
+    // Simulate Bob commits after Alice
+    const salt2 = ethers.encodeBytes32String("salt2");
+    const bidHash2 = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        [name, 456n, salt2, bob.address]
+      )
+    );
+
+    await expect(ah.connect(bob).commitBid(namehash, bidHash2, { value: 1n }))
+      .to.emit(ah, "BidCommitted");
+  });
+
+  it("rejects commits after auction close", async () => {
     const [deployer, alice] = await ethers.getSigners();
-    if (!alice) throw new Error("Alice signer is undefined");
-    
-    // deploy a tiny Registry to satisfy type
+
     const Reg = await ethers.getContractFactory("Registry");
     const reg = await Reg.deploy(); await reg.waitForDeployment();
 
     const AH = await ethers.getContractFactory("AuctionHouse");
-    const reserve = 1n;
-    const duration = 3600n;
-    const ah = await AH.deploy(await reg.getAddress(), reserve, duration);
+    const ah = await AH.deploy(await reg.getAddress(), 1n, 1n);
     await ah.waitForDeployment();
 
-    expect(await ah.registry()).to.eq(await reg.getAddress());
-    expect(await ah.reservePrice()).to.eq(reserve);
-    expect(await ah.duration()).to.eq(duration);
-
-    const name = "alice";
-    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
-    const salt = ethers.encodeBytes32String("s");
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes("timeclose"));
+    const salt = ethers.encodeBytes32String("x");
     const bid = 123n;
-    const bidHash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-      ["string","uint256","bytes32","address"],
-      [name, bid, salt, alice.address]
-    ));
+    const bidHash = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        ["timeclose", bid, salt, alice.address]
+      )
+    );
 
-    await expect(ah.connect(alice).commitBid(namehash, bidHash))
-      .to.emit(ah, "BidCommitted");
+    await ah.connect(alice).commitBid(namehash, bidHash, { value: 1n });
+    // Simulate time passing beyond auction duration
+    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_mine", []);
 
-    // skeleton reveal emits event & stores value for now
-    await expect(ah.connect(alice).revealBid(name, bid, salt))
-      .to.emit(ah, "BidRevealed");
+    const bob = (await ethers.getSigners())[1];
+    const bidHash2 = ethers.keccak256(ethers.toUtf8Bytes("dummy"));
+    await expect(ah.connect(bob).commitBid(namehash, bidHash2, { value: 1n }))
+      .to.be.revertedWith("auction closed");
+  });
+
+  it("accepts valid reveal and updates highest bid", async () => {
+    const [deployer, alice] = await ethers.getSigners();
+
+    const Reg = await ethers.getContractFactory("Registry");
+    const reg = await Reg.deploy();
+    await reg.waitForDeployment();
+
+    const AH = await ethers.getContractFactory("AuctionHouse");
+    const reservePrice = 1n;
+    const duration = 1000n;
+    const auction = await AH.deploy(await reg.getAddress(), reservePrice, duration);
+    await auction.waitForDeployment();
+
+    const name = "example";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+    const salt = ethers.encodeBytes32String("secretSalt");
+    const bidAmount = 5n;
+
+    // ✅ Use packed encoding to match Solidity's abi.encodePacked
+    const bidHash = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        [name, bidAmount, salt, alice.address]
+      )
+    );
+
+    // Commit first
+    await auction.connect(alice).commitBid(namehash, bidHash, { value: reservePrice });
+
+    // Simulate some time (within reveal window)
+    await ethers.provider.send("evm_increaseTime", [500]);
+    await ethers.provider.send("evm_mine", []);
+
+    // Reveal
+    await expect(auction.connect(alice).revealBid(name, bidAmount, salt))
+      .to.emit(auction, "BidRevealed")
+      .withArgs(namehash, alice.address, bidAmount);
+
+    // Verify state updated
+    const storedBid = await auction.getHighestBid(namehash);
+    expect(storedBid).to.equal(bidAmount);
+    const storedBidder = await auction.getHighestBidder(namehash);
+    expect(storedBidder).to.equal(alice.address);
   });
 });

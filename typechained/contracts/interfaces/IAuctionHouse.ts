@@ -156,7 +156,7 @@ export interface IAuctionHouse extends BaseContract {
   commitBid: TypedContractMethod<
     [namehash: BytesLike, bidHash: BytesLike],
     [void],
-    "nonpayable"
+    "payable"
   >;
 
   finalizeAuction: TypedContractMethod<[name: string], [void], "nonpayable">;
@@ -176,7 +176,7 @@ export interface IAuctionHouse extends BaseContract {
   ): TypedContractMethod<
     [namehash: BytesLike, bidHash: BytesLike],
     [void],
-    "nonpayable"
+    "payable"
   >;
   getFunction(
     nameOrSignature: "finalizeAuction"

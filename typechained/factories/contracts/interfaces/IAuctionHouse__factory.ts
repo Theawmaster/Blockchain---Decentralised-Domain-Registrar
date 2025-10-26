@@ -93,7 +93,7 @@ const _abi = [
     ],
     name: "commitBid",
     outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
