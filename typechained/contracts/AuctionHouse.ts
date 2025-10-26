@@ -27,6 +27,7 @@ export interface AuctionHouseInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "auctionEnd"
+      | "beneficiary"
       | "commitBid"
       | "duration"
       | "finalizeAuction"
@@ -35,6 +36,8 @@ export interface AuctionHouseInterface extends Interface {
       | "getDeposit"
       | "getHighestBid"
       | "getHighestBidder"
+      | "isFinalized"
+      | "proceeds"
       | "registry"
       | "reservePrice"
       | "revealBid"
@@ -47,6 +50,10 @@ export interface AuctionHouseInterface extends Interface {
   encodeFunctionData(
     functionFragment: "auctionEnd",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "beneficiary",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "commitBid",
@@ -77,6 +84,11 @@ export interface AuctionHouseInterface extends Interface {
     functionFragment: "getHighestBidder",
     values: [BytesLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "isFinalized",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(functionFragment: "proceeds", values?: undefined): string;
   encodeFunctionData(functionFragment: "registry", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "reservePrice",
@@ -88,6 +100,10 @@ export interface AuctionHouseInterface extends Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "auctionEnd", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "beneficiary",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "commitBid", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "duration", data: BytesLike): Result;
   decodeFunctionResult(
@@ -108,6 +124,11 @@ export interface AuctionHouseInterface extends Interface {
     functionFragment: "getHighestBidder",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "isFinalized",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proceeds", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "registry", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "reservePrice",
@@ -218,6 +239,8 @@ export interface AuctionHouse extends BaseContract {
 
   auctionEnd: TypedContractMethod<[namehash: BytesLike], [bigint], "view">;
 
+  beneficiary: TypedContractMethod<[], [string], "view">;
+
   commitBid: TypedContractMethod<
     [namehash: BytesLike, bidHash: BytesLike],
     [void],
@@ -254,6 +277,10 @@ export interface AuctionHouse extends BaseContract {
     "view"
   >;
 
+  isFinalized: TypedContractMethod<[namehash: BytesLike], [boolean], "view">;
+
+  proceeds: TypedContractMethod<[], [bigint], "view">;
+
   registry: TypedContractMethod<[], [string], "view">;
 
   reservePrice: TypedContractMethod<[], [bigint], "view">;
@@ -271,6 +298,9 @@ export interface AuctionHouse extends BaseContract {
   getFunction(
     nameOrSignature: "auctionEnd"
   ): TypedContractMethod<[namehash: BytesLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "beneficiary"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "commitBid"
   ): TypedContractMethod<
@@ -311,6 +341,12 @@ export interface AuctionHouse extends BaseContract {
   getFunction(
     nameOrSignature: "getHighestBidder"
   ): TypedContractMethod<[namehash: BytesLike], [string], "view">;
+  getFunction(
+    nameOrSignature: "isFinalized"
+  ): TypedContractMethod<[namehash: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "proceeds"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "registry"
   ): TypedContractMethod<[], [string], "view">;

@@ -23,18 +23,28 @@ import type {
 } from "../common";
 
 export interface RegistryInterface extends Interface {
-  getFunction(nameOrSignature: "ownerOf" | "register"): FunctionFragment;
+  getFunction(
+    nameOrSignature: "ownerOf" | "register" | "registerByHash"
+  ): FunctionFragment;
 
   getEvent(nameOrSignatureOrTopic: "NameRegistered"): EventFragment;
 
-  encodeFunctionData(functionFragment: "ownerOf", values: [string]): string;
+  encodeFunctionData(functionFragment: "ownerOf", values: [BytesLike]): string;
   encodeFunctionData(
     functionFragment: "register",
     values: [string, AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "registerByHash",
+    values: [BytesLike, AddressLike]
+  ): string;
 
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "registerByHash",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace NameRegisteredEvent {
@@ -98,10 +108,16 @@ export interface Registry extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  ownerOf: TypedContractMethod<[name: string], [string], "view">;
+  ownerOf: TypedContractMethod<[namehash: BytesLike], [string], "view">;
 
   register: TypedContractMethod<
     [name: string, owner: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  registerByHash: TypedContractMethod<
+    [namehash: BytesLike, owner: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -112,11 +128,18 @@ export interface Registry extends BaseContract {
 
   getFunction(
     nameOrSignature: "ownerOf"
-  ): TypedContractMethod<[name: string], [string], "view">;
+  ): TypedContractMethod<[namehash: BytesLike], [string], "view">;
   getFunction(
     nameOrSignature: "register"
   ): TypedContractMethod<
     [name: string, owner: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "registerByHash"
+  ): TypedContractMethod<
+    [namehash: BytesLike, owner: AddressLike],
     [void],
     "nonpayable"
   >;

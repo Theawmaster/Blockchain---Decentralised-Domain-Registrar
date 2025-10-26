@@ -6,22 +6,28 @@ import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title AuctionHouse - Blind Commit-Reveal Auction for .ntu Domains
-/// @notice Implements commit, reveal, and tracking of highest bidder
 contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     // ---------- Storage layout ----------
     // namehash => (bidder => commit hash)
     mapping(bytes32 => mapping(address => bytes32)) private _commits;
     // namehash => (bidder => commit timestamp)
     mapping(bytes32 => mapping(address => uint256)) private _commitTime;
-    // namehash => (bidder => ETH deposit)
+    // namehash => (bidder => ETH deposit sent at commit)
     mapping(bytes32 => mapping(address => uint256)) private _deposits;
-    // namehash => auction end timestamp
+    // namehash => auction end timestamp (set on first commit)
     mapping(bytes32 => uint256) private _auctionEnd;
     // namehash => (bidder => revealed bid amount)
     mapping(bytes32 => mapping(address => uint256)) private _reveals;
-    // namehash => highest bid info
+    // namehash => highest bid and bidder (updated on each valid reveal)
     mapping(bytes32 => uint256) private _highestBid;
     mapping(bytes32 => address) private _highestBidder;
+    // namehash => finalized flag (one-shot guard)
+    mapping(bytes32 => bool) private _finalized;
+
+    // proceeds accumulated for the beneficiary (winner’s deposit for now)
+    uint256 private _proceeds;
+    // deployer is the beneficiary; keeps ctor signature stable
+    address public immutable beneficiary;
 
     IRegistry public immutable registry;
     uint256 public immutable reservePrice;
@@ -33,9 +39,10 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         registry = IRegistry(registry_);
         reservePrice = reservePrice_;
         duration = duration_;
+        beneficiary = msg.sender; // simple treasury; changeable later if needed
     }
 
-    // ---------- Commit Function (T008) ----------
+    // ---------- Commit (T008) ----------
     function commitBid(bytes32 namehash, bytes32 bidHash)
         external
         payable
@@ -60,7 +67,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit BidCommitted(namehash, msg.sender);
     }
 
-    // ---------- Reveal Function (T009) ----------
+    // ---------- Reveal (T009) ----------
     function revealBid(
         string calldata name,
         uint256 bidAmount,
@@ -73,16 +80,12 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         require(block.timestamp <= _auctionEnd[namehash], "reveal period ended");
         require(_reveals[namehash][msg.sender] == 0, "already revealed");
 
-        // Recompute commitment (MUST match original encoding)
-        bytes32 computed = keccak256(
-            abi.encodePacked(name, bidAmount, salt, msg.sender)
-        );
+        // commit = keccak256(abi.encodePacked(name, bid, salt, bidder))
+        bytes32 computed = keccak256(abi.encodePacked(name, bidAmount, salt, msg.sender));
         require(computed == commitHash, "invalid reveal");
 
-        // Store revealed value
         _reveals[namehash][msg.sender] = bidAmount;
 
-        // Update highest bid tracking
         if (bidAmount > _highestBid[namehash]) {
             _highestBid[namehash] = bidAmount;
             _highestBidder[namehash] = msg.sender;
@@ -91,10 +94,38 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit BidRevealed(namehash, msg.sender, bidAmount);
     }
 
-    // ---------- Stub: Finalize Function (T010 placeholder) ----------
-    function finalizeAuction(string calldata name) external override {
+    // ---------- Finalize (T010) ----------
+    /// @notice closes the auction, registers the winner, and moves funds (one-shot)
+    /// @dev current funds model: winner's *deposit* is retained as proceeds;
+    ///      losers will withdraw in T011 via a pull-pattern `withdraw()`.
+    function finalizeAuction(string calldata name) external override nonReentrant {
         bytes32 namehash = keccak256(abi.encodePacked(name));
-        emit AuctionFinalized(namehash, _highestBidder[namehash], _highestBid[namehash]);
+
+        uint256 end = _auctionEnd[namehash];
+        require(end != 0, "auction not started");
+        require(block.timestamp > end, "auction not ended");
+        require(!_finalized[namehash], "already finalized");
+
+        _finalized[namehash] = true;
+
+        address winner = _highestBidder[namehash];
+        uint256 winBid = _highestBid[namehash];
+
+        // if nobody revealed, do nothing except emit
+        if (winner != address(0)) {
+            // mint/register ownership in the registry
+            // Registry supports bytes32-based registration in your current codebase
+            registry.registerByHash(namehash, winner);
+
+            // move winner's *deposit* to proceeds (simple model for now)
+            uint256 winnerDeposit = _deposits[namehash][winner];
+            if (winnerDeposit > 0) {
+                _deposits[namehash][winner] = 0;
+                _proceeds += winnerDeposit;
+            }
+        }
+
+        emit AuctionFinalized(namehash, winner, winBid);
     }
 
     // ---------- Views ----------
@@ -120,5 +151,13 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
 
     function getHighestBidder(bytes32 namehash) external view returns (address) {
         return _highestBidder[namehash];
+    }
+
+    function isFinalized(bytes32 namehash) external view returns (bool) {
+        return _finalized[namehash];
+    }
+
+    function proceeds() external view returns (uint256) {
+        return _proceeds;
     }
 }

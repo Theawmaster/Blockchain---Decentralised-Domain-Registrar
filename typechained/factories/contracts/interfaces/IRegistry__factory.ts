@@ -37,9 +37,9 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "string",
-        name: "name",
-        type: "string",
+        internalType: "bytes32",
+        name: "namehash",
+        type: "bytes32",
       },
     ],
     name: "ownerOf",
@@ -67,6 +67,24 @@ const _abi = [
       },
     ],
     name: "register",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "namehash",
+        type: "bytes32",
+      },
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    name: "registerByHash",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
