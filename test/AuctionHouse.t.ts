@@ -1,9 +1,12 @@
+import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("AuctionHouse - Commit Phase", () => {
   it("accepts first commit, sets auctionEnd, and prevents duplicates", async () => {
-    const [deployer, alice, bob] = await ethers.getSigners();
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice, bob] = signers;
+    if (!alice || !bob) throw new Error("signers missing");
 
     const Reg = await ethers.getContractFactory("Registry");
     const reg = await Reg.deploy();
@@ -50,7 +53,9 @@ describe("AuctionHouse - Commit Phase", () => {
   });
 
   it("rejects commits after auction close", async () => {
-    const [deployer, alice] = await ethers.getSigners();
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
 
     const Reg = await ethers.getContractFactory("Registry");
     const reg = await Reg.deploy(); await reg.waitForDeployment();
@@ -81,7 +86,9 @@ describe("AuctionHouse - Commit Phase", () => {
   });
 
   it("accepts valid reveal and updates highest bid", async () => {
-    const [deployer, alice] = await ethers.getSigners();
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
 
     const Reg = await ethers.getContractFactory("Registry");
     const reg = await Reg.deploy();
@@ -123,5 +130,79 @@ describe("AuctionHouse - Commit Phase", () => {
     expect(storedBid).to.equal(bidAmount);
     const storedBidder = await auction.getHighestBidder(namehash);
     expect(storedBidder).to.equal(alice.address);
+  });
+
+  it("finalizes auction, assigns winner, and locks proceeds (T010)", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice, bob] = signers;
+    if (!alice || !bob) throw new Error("signers missing");
+
+    // --- Deploy Registry ---
+    const Reg = await ethers.getContractFactory("Registry");
+    const reg = await Reg.deploy();
+    await reg.waitForDeployment();
+
+    // --- Deploy AuctionHouse ---
+    const AH = await ethers.getContractFactory("AuctionHouse");
+    const reserve = 1n;
+    const duration = 1000n;
+    const auction = await AH.deploy(await reg.getAddress(), reserve, duration);
+    await auction.waitForDeployment();
+
+    // --- Auction Setup ---
+    const name = "domainx";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+
+    const saltA = ethers.encodeBytes32String("a-salt");
+    const saltB = ethers.encodeBytes32String("b-salt");
+
+    const bidA = 3n;
+    const bidB = 6n; // Bob outbids Alice
+
+    const commitA = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        [name, bidA, saltA, alice.address]
+      )
+    );
+
+    const commitB = ethers.keccak256(
+      ethers.solidityPacked(
+        ["string", "uint256", "bytes32", "address"],
+        [name, bidB, saltB, bob.address]
+      )
+    );
+
+    // --- Commit Phase ---
+    await auction.connect(alice).commitBid(namehash, commitA, { value: reserve });
+    await auction.connect(bob).commitBid(namehash, commitB, { value: reserve });
+
+    // --- Reveal Phase ---
+    await auction.connect(alice).revealBid(name, bidA, saltA);
+    await auction.connect(bob).revealBid(name, bidB, saltB);
+
+    // --- Time travel beyond auctionEnd ---
+    await ethers.provider.send("evm_increaseTime", [Number(duration + 1n)]);
+    await ethers.provider.send("evm_mine", []);
+
+
+    // --- Pre-finalization state ---
+    const prevProceeds = await auction.proceeds();
+    expect(await auction.isFinalized(namehash)).to.equal(false);
+
+    // --- Finalize Auction ---
+    await expect(auction.finalizeAuction(name))
+      .to.emit(auction, "AuctionFinalized")
+      .withArgs(namehash, bob.address, bidB);
+
+    // --- Post-finalization assertions ---
+    expect(await reg.ownerOf(namehash)).to.equal(bob.address);
+    expect(await auction.isFinalized(namehash)).to.equal(true);
+
+    const newProceeds = await auction.proceeds();
+    expect(newProceeds - prevProceeds).to.equal(reserve);
+
+    // --- Double-finalization guard ---
+    await expect(auction.finalizeAuction(name)).to.be.revertedWith("already finalized");
   });
 });
