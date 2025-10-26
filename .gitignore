@@ -5,4 +5,5 @@ cache
 coverage
 coverage.json
 .env
+/typechained
 *.log
