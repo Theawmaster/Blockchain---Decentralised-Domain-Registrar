@@ -14,9 +14,25 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "SafeCast",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SafeCast__factory>;
+    getContractFactory(
+      name: "Strings",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Strings__factory>;
+    getContractFactory(
       name: "AuctionHouse",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.AuctionHouse__factory>;
+    getContractFactory(
+      name: "IAuctionHouse",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAuctionHouse__factory>;
+    getContractFactory(
+      name: "IRegistry",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IRegistry__factory>;
     getContractFactory(
       name: "NameToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -27,10 +43,30 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.Registry__factory>;
 
     getContractAt(
+      name: "SafeCast",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SafeCast>;
+    getContractAt(
+      name: "Strings",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Strings>;
+    getContractAt(
       name: "AuctionHouse",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.AuctionHouse>;
+    getContractAt(
+      name: "IAuctionHouse",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAuctionHouse>;
+    getContractAt(
+      name: "IRegistry",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IRegistry>;
     getContractAt(
       name: "NameToken",
       address: string | ethers.Addressable,
@@ -43,9 +79,25 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.Registry>;
 
     deployContract(
+      name: "SafeCast",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeCast>;
+    deployContract(
+      name: "Strings",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Strings>;
+    deployContract(
       name: "AuctionHouse",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AuctionHouse>;
+    deployContract(
+      name: "IAuctionHouse",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAuctionHouse>;
+    deployContract(
+      name: "IRegistry",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IRegistry>;
     deployContract(
       name: "NameToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -55,11 +107,31 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Registry>;
 
+    deployContract(
+      name: "SafeCast",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeCast>;
+    deployContract(
+      name: "Strings",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Strings>;
     deployContract(
       name: "AuctionHouse",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AuctionHouse>;
+    deployContract(
+      name: "IAuctionHouse",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAuctionHouse>;
+    deployContract(
+      name: "IRegistry",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IRegistry>;
     deployContract(
       name: "NameToken",
       args: any[],
