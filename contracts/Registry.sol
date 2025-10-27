@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "./interfaces/IRegistry.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// -----------------------------------------------------------------------
 ///                              Custom Errors
@@ -15,9 +17,9 @@ error NotDomainOwner();
 /// @title Registry
 /// @notice Manages ownership and resolution of `.ntu` domain names.
 /// @dev Provides domain registration, ownership lookups, and resolver mapping.
-/// @custom:phase Registry Core v0.3 (T013)
+/// @custom:phase Registry Core v0.4 (T014 - Access Control & Pausable)
 /// -----------------------------------------------------------------------
-contract Registry is IRegistry {
+contract Registry is IRegistry, Ownable, Pausable {
     // -------------------------------------------------------------------
     // Storage Layout
     // -------------------------------------------------------------------
@@ -29,13 +31,16 @@ contract Registry is IRegistry {
     /// @dev namehash → resolved address (T012)
     mapping(bytes32 => address) private _resolves;
 
+    // -------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------
+    /// @notice Initializes Ownable with deployer as the initial owner.
+    constructor() Ownable(msg.sender) {}
 
     // -------------------------------------------------------------------
     // Internal Validation
     // -------------------------------------------------------------------
     /// @dev Validates domain name format: [a–z0–9-], no double or leading/trailing dashes.
-    /// @param name The domain name to validate.
-    /// @return True if the name conforms to `.ntu` naming rules.
     function _isValidName(string memory name) internal pure returns (bool) {
         bytes memory b = bytes(name);
         if (b.length < 3 || b.length > 63) return false;
@@ -55,12 +60,11 @@ contract Registry is IRegistry {
     // -------------------------------------------------------------------
     // Registration (Public)
     // -------------------------------------------------------------------
-    /// @notice Registers a new domain name to an owner.
-    /// @param name The domain name (e.g. "alice").
-    /// @param owner The address to assign ownership to.
-    /// @custom:error InvalidNameFormat Thrown when name violates format rules.
-    /// @custom:error NameAlreadyRegistered Thrown if the name is already taken.
-    function register(string calldata name, address owner) external override {
+    function register(string calldata name, address owner)
+        external
+        override
+        whenNotPaused
+    {
         if (!_isValidName(name)) revert InvalidNameFormat();
         bytes32 namehash = keccak256(abi.encodePacked(name));
         if (_ownerOf[namehash] != address(0)) revert NameAlreadyRegistered();
@@ -69,11 +73,11 @@ contract Registry is IRegistry {
         emit NameRegistered(namehash, owner, name);
     }
 
-    /// @notice Registers ownership directly by hash (used by AuctionHouse).
-    /// @param namehash The keccak256 hash of the domain name.
-    /// @param owner The address to assign ownership to.
-    /// @custom:error NameAlreadyRegistered Thrown if already owned.
-    function registerByHash(bytes32 namehash, address owner) external override {
+    function registerByHash(bytes32 namehash, address owner)
+        external
+        override
+        whenNotPaused
+    {
         if (_ownerOf[namehash] != address(0)) revert NameAlreadyRegistered();
         _ownerOf[namehash] = owner;
         emit NameRegistered(namehash, owner, "");
@@ -82,22 +86,22 @@ contract Registry is IRegistry {
     // -------------------------------------------------------------------
     // Ownership View
     // -------------------------------------------------------------------
-    /// @notice Returns the owner of a domain hash.
-    /// @param namehash The keccak256 hash of the domain name.
-    /// @return The owner address or address(0) if unregistered.
-    function ownerOf(bytes32 namehash) external view override returns (address) {
+    function ownerOf(bytes32 namehash)
+        external
+        view
+        override
+        returns (address)
+    {
         return _ownerOf[namehash];
     }
 
     // -------------------------------------------------------------------
     // Resolver API (T012)
     // -------------------------------------------------------------------
-    /// @notice Allows the owner to set a resolution address for a domain.
-    /// @param name The registered domain name (e.g. "alice").
-    /// @param resolved The address that this domain should resolve to.
-    /// @custom:error DomainNotRegistered Thrown if the domain is not registered.
-    /// @custom:error NotDomainOwner Thrown if caller is not the domain owner.
-    function setResolve(string calldata name, address resolved) external {
+    function setResolve(string calldata name, address resolved)
+        external
+        whenNotPaused
+    {
         bytes32 namehash = keccak256(abi.encodePacked(name));
         address owner = _ownerOf[namehash];
         if (owner == address(0)) revert DomainNotRegistered();
@@ -107,11 +111,23 @@ contract Registry is IRegistry {
         emit ResolveSet(namehash, resolved);
     }
 
-    /// @notice Resolves a domain name to its mapped address.
-    /// @param name The registered domain name.
-    /// @return resolved The address this name resolves to (or zero if unset).
-    function resolve(string calldata name) external view returns (address resolved) {
+    function resolve(string calldata name)
+        external
+        view
+        returns (address resolved)
+    {
         bytes32 namehash = keccak256(abi.encodePacked(name));
         resolved = _resolves[namehash];
+    }
+
+    // -------------------------------------------------------------------
+    // Admin Controls (T014)
+    // -------------------------------------------------------------------
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }

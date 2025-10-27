@@ -2,7 +2,7 @@ import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signer
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("AuctionHouse - Commit Phase", () => {
+describe("AuctionHouse: Commit Phase", () => {
 
   it("accepts first commit, sets auctionEnd, and prevents duplicates", async () => {
     const [deployer, alice, bob]: HardhatEthersSigner[] = await ethers.getSigners();
@@ -35,7 +35,7 @@ describe("AuctionHouse - Commit Phase", () => {
     const endTime = await ah.auctionEnd(namehash);
     expect(endTime).to.be.greaterThan(0n);
 
-    // ✅ duplicate commit should revert with custom error
+    // duplicate commit should revert with custom error
     await expect(
       ah.connect(alice).commitBid(namehash, bidHash, { value: 1n })
     ).to.be.revertedWithCustomError(ah, "AuctionAlreadyCommitted");
