@@ -240,4 +240,85 @@ describe("AuctionHouse: Commit Phase", () => {
 
     expect(await reg.resolve(name)).to.equal(target);
   });
+
+  it("allows losing bidders to withdraw safely (T011)", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice, bob] = signers;
+    if (!alice || !bob) throw new Error("signers missing");
+
+    const Registry = await ethers.getContractFactory("Registry");
+    const reg = await Registry.deploy();
+    await reg.waitForDeployment();
+
+    const Auction = await ethers.getContractFactory("AuctionHouse");
+    const auc = await Auction.deploy(await reg.getAddress(), 1n, 1000n);
+    await auc.waitForDeployment();
+
+    const name = "refundtest";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+
+    const salt1 = ethers.encodeBytes32String("salt1");
+    const salt2 = ethers.encodeBytes32String("salt2");
+    const bid1 = 3n;
+    const bid2 = 6n;
+
+    const commit1 = ethers.keccak256(
+      ethers.solidityPacked(["string", "uint256", "bytes32", "address"], [name, bid1, salt1, alice.address])
+    );
+    const commit2 = ethers.keccak256(
+      ethers.solidityPacked(["string", "uint256", "bytes32", "address"], [name, bid2, salt2, bob.address])
+    );
+
+    await auc.connect(alice).commitBid(namehash, commit1, { value: 1n });
+    await auc.connect(bob).commitBid(namehash, commit2, { value: 1n });
+
+    await auc.connect(alice).revealBid(name, bid1, salt1);
+    await auc.connect(bob).revealBid(name, bid2, salt2);
+
+    await ethers.provider.send("evm_increaseTime", [2000]);
+    await ethers.provider.send("evm_mine", []);
+    await auc.finalizeAuction(name);
+
+    // --- Alice (loser) withdraws safely ---
+    const before = await ethers.provider.getBalance(alice.address);
+    const tx = await auc.connect(alice).withdraw(namehash);
+    const receipt = (await tx.wait())!;
+    const gasUsed = receipt.gasUsed * (tx.gasPrice ?? 0n);
+    const after = await ethers.provider.getBalance(alice.address);
+    const effectiveAfter = after + gasUsed; // balance + gas spent
+
+    expect(effectiveAfter).to.be.gt(before);
+
+    // --- Winner cannot withdraw ---
+    await expect(auc.connect(bob).withdraw(namehash)).to.be.revertedWith("winner cannot withdraw");
+
+    // --- Double withdraw prevention ---
+    await expect(auc.connect(alice).withdraw(namehash)).to.be.revertedWith("nothing to withdraw");
+  });
+
+  it("allows owner to set and resolve address (T012)", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
+
+    const Reg = await ethers.getContractFactory("Registry");
+    const reg = await Reg.deploy();
+    await reg.waitForDeployment();
+
+    const name = "alice";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+
+    await reg.register(name, alice.address);
+
+    // lower-case literal is fine, but normalize for assertions:
+    const target = "0x00000000000000000000000000000000000b0b01";
+    const targetChecksum = ethers.getAddress(target); // <-- normalize
+
+    await expect(reg.connect(alice).setResolve(name, target))
+      .to.emit(reg, "ResolveSet")
+      .withArgs(namehash, targetChecksum); // <-- use checksum form
+
+    const resolved = await reg.resolve(name);
+    expect(resolved).to.equal(targetChecksum); // also compare checksummed form
+  });
 });

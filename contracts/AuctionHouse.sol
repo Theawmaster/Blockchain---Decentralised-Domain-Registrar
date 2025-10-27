@@ -243,4 +243,31 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     function proceeds() external view returns (uint256) {
         return _proceeds;
     }
+
+    // ---------- Refunds (T011) ----------
+    /// @notice Losing bidders can withdraw their deposits after auction finalization.
+    /// @dev Implements pull-based refund pattern to prevent reentrancy vulnerabilities.
+    function withdraw(bytes32 namehash) external nonReentrant {
+        require(_finalized[namehash], "not finalized");
+
+        // Winner cannot withdraw (their deposit becomes proceeds)
+        address winner = _highestBidder[namehash];
+        require(msg.sender != winner, "winner cannot withdraw");
+
+        uint256 amount = _deposits[namehash][msg.sender];
+        require(amount > 0, "nothing to withdraw");
+
+        _deposits[namehash][msg.sender] = 0;
+
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "withdraw failed");
+
+        emit RefundIssued(namehash, msg.sender, amount);
+    }
+
+    /// @notice Emitted when a losing bidder successfully withdraws their deposit.
+    /// @param namehash The hashed name of the auctioned domain.
+    /// @param bidder The address that withdrew.
+    /// @param amount The withdrawn amount in wei.
+    event RefundIssued(bytes32 indexed namehash, address indexed bidder, uint256 amount);
 }

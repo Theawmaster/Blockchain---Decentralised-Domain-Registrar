@@ -25,6 +25,8 @@ contract Registry is IRegistry, Ownable, Pausable {
     // -------------------------------------------------------------------
     /// @dev namehash → owner address
     mapping(bytes32 => address) private _ownerOf;
+    // namehash => resolved address (T012)
+    mapping(bytes32 => address) private _resolves;
 
     /// @dev namehash → resolved address (T012)
     mapping(bytes32 => address) private _resolves;
