@@ -2,7 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("Registry (T013)", () => {
+describe("Registry", () => {
 
   it("registers a valid name to an owner (string version)", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();

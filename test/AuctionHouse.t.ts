@@ -2,7 +2,7 @@ import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signer
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("AuctionHouse - Commit Phase", () => {
+describe("AuctionHouse: Commit Phase", () => {
 
   it("accepts first commit, sets auctionEnd, and prevents duplicates", async () => {
     const [deployer, alice, bob]: HardhatEthersSigner[] = await ethers.getSigners();

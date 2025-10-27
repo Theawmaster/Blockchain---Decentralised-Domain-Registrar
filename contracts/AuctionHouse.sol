@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import "./interfaces/IAuctionHouse.sol";
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// -----------------------------------------------------------------------
 ///                              Custom Errors
@@ -30,7 +32,7 @@ error WithdrawFailed();
 ///      All ETH movements use the pull pattern and ReentrancyGuard.
 /// @custom:phase Commit–Reveal Auction v0.3 (T013)
 /// -----------------------------------------------------------------------
-contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
+contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     // -------------------------------------------------------------------
     // Storage Layout
     // -------------------------------------------------------------------
@@ -61,7 +63,9 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     /// @param registry_ Address of the domain registry contract.
     /// @param reservePrice_ Minimum deposit (in wei) to participate.
     /// @param duration_ Duration of each auction (in seconds).
-    constructor(address registry_, uint256 reservePrice_, uint256 duration_) {
+    constructor(address registry_, uint256 reservePrice_, uint256 duration_)
+        Ownable(msg.sender)
+    {
         require(registry_ != address(0), "registry addr required");
         registry = IRegistry(registry_);
         reservePrice = reservePrice_;
@@ -81,6 +85,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         payable
         nonReentrant
         override
+        whenNotPaused
     {
         if (bidHash == bytes32(0)) revert EmptyBidHash();
         if (msg.value < reservePrice) revert DepositBelowReserve();
@@ -113,7 +118,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         string calldata name,
         uint256 bidAmount,
         bytes32 salt
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         bytes32 namehash = keccak256(abi.encodePacked(name));
         bytes32 commitHash = _commits[namehash][msg.sender];
 
@@ -140,7 +145,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     /// @notice Finalizes an auction after its end time.
     /// @param name The plaintext domain name.
     /// @dev Registers the winner in the Registry and transfers proceeds to treasury.
-    function finalizeAuction(string calldata name) external override nonReentrant {
+    function finalizeAuction(string calldata name) external override nonReentrant whenNotPaused {
         bytes32 namehash = keccak256(abi.encodePacked(name));
 
         uint256 end = _auctionEnd[namehash];
@@ -172,7 +177,7 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     /// @notice Allows losing bidders to withdraw their deposits.
     /// @param namehash The hashed domain name.
     /// @dev Implements pull pattern to prevent reentrancy.
-    function withdraw(bytes32 namehash) external nonReentrant {
+    function withdraw(bytes32 namehash) external nonReentrant whenNotPaused {
         if (!_finalized[namehash]) revert AuctionNotEnded();
 
         address winner = _highestBidder[namehash];
@@ -187,6 +192,21 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         if (!ok) revert WithdrawFailed();
 
         emit RefundIssued(namehash, msg.sender, amount);
+    }
+
+    // -------------------------------------------------------------------
+    // Admin Controls (T014)
+    // -------------------------------------------------------------------
+
+    /// @notice Pauses all bid, reveal, and finalization functions.
+    /// @dev Only callable by contract owner.
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpauses the contract, restoring normal functionality.
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     // -------------------------------------------------------------------
