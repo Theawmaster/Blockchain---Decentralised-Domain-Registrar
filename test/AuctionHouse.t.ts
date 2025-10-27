@@ -35,7 +35,7 @@ describe("AuctionHouse: Commit Phase", () => {
     const endTime = await ah.auctionEnd(namehash);
     expect(endTime).to.be.greaterThan(0n);
 
-    // ✅ duplicate commit should revert with custom error
+    // duplicate commit should revert with custom error
     await expect(
       ah.connect(alice).commitBid(namehash, bidHash, { value: 1n })
     ).to.be.revertedWithCustomError(ah, "AuctionAlreadyCommitted");
