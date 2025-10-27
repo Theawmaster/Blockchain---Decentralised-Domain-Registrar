@@ -3,12 +3,17 @@ pragma solidity ^0.8.24;
 
 /// @title Blind-commit auction interface for .ntu names
 interface IAuctionHouse {
+    /// -----------------------------------------------------------------------
     /// Events
+    /// -----------------------------------------------------------------------
     event BidCommitted(bytes32 indexed namehash, address indexed bidder);
     event BidRevealed(bytes32 indexed namehash, address indexed bidder, uint256 bidAmount);
     event AuctionFinalized(bytes32 indexed namehash, address indexed winner, uint256 winningBid);
+    event RefundIssued(bytes32 indexed namehash, address indexed bidder, uint256 amount);
 
-    /// Core function
+    /// -----------------------------------------------------------------------
+    /// Core functions
+    /// -----------------------------------------------------------------------
 
     /// keccak256(abi.encodePacked(name, bidAmount, salt, bidder))
     /// Commit a sealed bid with deposit ≥ reservePrice

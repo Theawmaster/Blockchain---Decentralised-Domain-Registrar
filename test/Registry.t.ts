@@ -1,23 +1,32 @@
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("Registry", () => {
-  it("registers a name to an owner (string version)", async () => {
-    const [alice] = await ethers.getSigners() as [any];
+
+  it("registers a valid name to an owner (string version)", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
 
     const Registry = await ethers.getContractFactory("Registry");
     const reg = await Registry.deploy();
     await reg.waitForDeployment();
 
-    // ✅ valid lowercase string
-    const tx = reg.register("alice", alice.address);
-    await expect(tx)
-      .to.emit(reg, "NameRegistered")
-      .withArgs(ethers.keccak256(ethers.toUtf8Bytes("alice")), alice.address, "alice");
+    const name = "alice";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
 
-    // ✅ check stored owner by hash
-    const namehash = ethers.keccak256(ethers.toUtf8Bytes("alice"));
+    // should emit NameRegistered
+    await expect(reg.register(name, alice.address))
+      .to.emit(reg, "NameRegistered")
+      .withArgs(namehash, alice.address, name);
+
+    // stored ownership
     expect(await reg.ownerOf(namehash)).to.equal(alice.address);
+
+    // duplicate should revert with custom error
+    await expect(reg.register(name, alice.address))
+      .to.be.revertedWithCustomError(reg, "NameAlreadyRegistered");
   });
 
   it("rejects invalid names per normalization policy", async () => {
@@ -28,7 +37,7 @@ describe("Registry", () => {
     const badNames = ["-abc", "abc-", "ab--cd", "AlicE", "ab", "ab@cd"];
     for (const name of badNames) {
       await expect(reg.register(name, ethers.ZeroAddress))
-        .to.be.revertedWith("invalid name format");
+        .to.be.revertedWithCustomError(reg, "InvalidNameFormat");
     }
 
     const goodNames = ["alice", "alice-123", "a1b2c3"];
@@ -38,16 +47,68 @@ describe("Registry", () => {
     }
   });
 
-  it("registers by hash directly (used by AuctionHouse)", async () => {
-    const [alice] = await ethers.getSigners() as [any];
+  it("registers by hash directly (system-level)", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
 
     const Registry = await ethers.getContractFactory("Registry");
     const reg = await Registry.deploy();
     await reg.waitForDeployment();
 
     const namehash = ethers.keccak256(ethers.toUtf8Bytes("domainx"));
+
+    // system registration (AuctionHouse-style)
     await expect(reg.registerByHash(namehash, alice.address))
       .to.emit(reg, "NameRegistered")
       .withArgs(namehash, alice.address, "");
+
+    // duplicate registration fails
+    await expect(reg.registerByHash(namehash, alice.address))
+      .to.be.revertedWithCustomError(reg, "NameAlreadyRegistered");
+  });
+
+  it("allows only owner to set and resolve address", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice, bob] = signers;
+    if (!alice || !bob) throw new Error("signers missing");
+
+    const Registry = await ethers.getContractFactory("Registry");
+    const reg = await Registry.deploy();
+    await reg.waitForDeployment();
+
+    const name = "alice";
+    const namehash = ethers.keccak256(ethers.toUtf8Bytes(name));
+    await reg.register(name, alice.address);
+
+    const resolvedTarget = "0x00000000000000000000000000000000000b0b01";
+    const checksum = ethers.getAddress(resolvedTarget);
+
+    // owner sets resolve successfully
+    await expect(reg.connect(alice).setResolve(name, resolvedTarget))
+      .to.emit(reg, "ResolveSet")
+      .withArgs(namehash, checksum);
+
+    // non-owner cannot set resolve
+    await expect(reg.connect(bob).setResolve(name, resolvedTarget))
+      .to.be.revertedWithCustomError(reg, "NotDomainOwner");
+
+    // resolves correctly
+    const resolved = await reg.resolve(name);
+    expect(resolved).to.equal(checksum);
+  });
+
+  it("reverts when setting resolve for unregistered domain", async () => {
+    const signers: HardhatEthersSigner[] = await ethers.getSigners();
+    const [deployer, alice] = signers;
+    if (!alice) throw new Error("signers missing");
+
+    const Registry = await ethers.getContractFactory("Registry");
+    const reg = await Registry.deploy();
+    await reg.waitForDeployment();
+
+    await expect(
+      reg.connect(alice).setResolve("ghost", alice.address)
+    ).to.be.revertedWithCustomError(reg, "DomainNotRegistered");
   });
 });
