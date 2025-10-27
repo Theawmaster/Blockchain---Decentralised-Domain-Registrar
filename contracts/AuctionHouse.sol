@@ -5,60 +5,94 @@ import "./interfaces/IAuctionHouse.sol";
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @title AuctionHouse - Blind Commit-Reveal Auction for .ntu Domains
+/// -----------------------------------------------------------------------
+///                              Custom Errors
+/// -----------------------------------------------------------------------
+error EmptyBidHash();
+error DepositBelowReserve();
+error AuctionClosed();
+error AuctionAlreadyCommitted();
+error NoCommitFound();
+error RevealPeriodEnded();
+error AlreadyRevealed();
+error InvalidBidReveal();
+error AuctionNotStarted();
+error AuctionNotEnded();
+error AuctionAlreadyFinalized();
+error WinnerCannotWithdraw();
+error NothingToWithdraw();
+error WithdrawFailed();
+
+/// -----------------------------------------------------------------------
+/// @title AuctionHouse
+/// @notice Implements a blind commit–reveal auction for `.ntu` domain names.
+/// @dev Handles the auction lifecycle: commit, reveal, finalize, and refund.
+///      All ETH movements use the pull pattern and ReentrancyGuard.
+/// @custom:phase Commit–Reveal Auction v0.3 (T013)
+/// -----------------------------------------------------------------------
 contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
-    // ---------- Storage layout ----------
-    // namehash => (bidder => commit hash)
-    mapping(bytes32 => mapping(address => bytes32)) private _commits;
-    // namehash => (bidder => commit timestamp)
-    mapping(bytes32 => mapping(address => uint256)) private _commitTime;
-    // namehash => (bidder => ETH deposit sent at commit)
-    mapping(bytes32 => mapping(address => uint256)) private _deposits;
-    // namehash => auction end timestamp (set on first commit)
-    mapping(bytes32 => uint256) private _auctionEnd;
-    // namehash => (bidder => revealed bid amount)
-    mapping(bytes32 => mapping(address => uint256)) private _reveals;
-    // namehash => highest bid and bidder (updated on each valid reveal)
-    mapping(bytes32 => uint256) private _highestBid;
-    mapping(bytes32 => address) private _highestBidder;
-    // namehash => finalized flag (one-shot guard)
-    mapping(bytes32 => bool) private _finalized;
+    // -------------------------------------------------------------------
+    // Storage Layout
+    // -------------------------------------------------------------------
+    mapping(bytes32 => mapping(address => bytes32)) private _commits;     // namehash → bidder → commit
+    mapping(bytes32 => mapping(address => uint256)) private _commitTime;  // namehash → bidder → timestamp
+    mapping(bytes32 => mapping(address => uint256)) private _deposits;    // namehash → bidder → ETH deposit
+    mapping(bytes32 => uint256) private _auctionEnd;                      // namehash → auction end time
+    mapping(bytes32 => mapping(address => uint256)) private _reveals;     // namehash → bidder → revealed bid
+    mapping(bytes32 => uint256) private _highestBid;                      // namehash → current highest bid
+    mapping(bytes32 => address) private _highestBidder;                   // namehash → current highest bidder
+    mapping(bytes32 => bool) private _finalized;                          // namehash → finalization flag
 
-    // proceeds accumulated for the beneficiary (winner’s deposit for now)
-    uint256 private _proceeds;
-    // deployer is the beneficiary; keeps ctor signature stable
-    address public immutable beneficiary;
+    uint256 private _proceeds;                                            // accumulated proceeds (winner deposits)
+    address public immutable beneficiary;                                 // deployer / treasury
+    IRegistry public immutable registry;                                  // linked Registry contract
+    uint256 public immutable reservePrice;                                // minimum deposit required
+    uint256 public immutable duration;                                    // auction duration (seconds)
 
-    IRegistry public immutable registry;
-    uint256 public immutable reservePrice;
-    uint256 public immutable duration;
+    // -------------------------------------------------------------------
+    // Events
+    // -------------------------------------------------------------------
+    /// @notice Emitted when a new auction is started.
+    event AuctionStarted(bytes32 indexed namehash, uint256 endTime);
 
-    // ---------- Constructor ----------
+    // -------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------
+    /// @param registry_ Address of the domain registry contract.
+    /// @param reservePrice_ Minimum deposit (in wei) to participate.
+    /// @param duration_ Duration of each auction (in seconds).
     constructor(address registry_, uint256 reservePrice_, uint256 duration_) {
         require(registry_ != address(0), "registry addr required");
         registry = IRegistry(registry_);
         reservePrice = reservePrice_;
         duration = duration_;
-        beneficiary = msg.sender; // simple treasury; changeable later if needed
+        beneficiary = msg.sender;
     }
 
-    // ---------- Commit (T008) ----------
+    // -------------------------------------------------------------------
+    // Commit Phase (T008)
+    // -------------------------------------------------------------------
+    /// @notice Commits a sealed bid for a given domain.
+    /// @param namehash Hash of the domain name being auctioned.
+    /// @param bidHash Off-chain computed bid hash = keccak256(name, bid, salt, bidder).
+    /// @dev Starts the auction timer if this is the first commit.
     function commitBid(bytes32 namehash, bytes32 bidHash)
         external
         payable
         nonReentrant
         override
     {
-        require(bidHash != bytes32(0), "empty hash");
-        require(msg.value >= reservePrice, "deposit < reserve");
+        if (bidHash == bytes32(0)) revert EmptyBidHash();
+        if (msg.value < reservePrice) revert DepositBelowReserve();
 
         if (_auctionEnd[namehash] == 0) {
             _auctionEnd[namehash] = block.timestamp + duration;
-        } else {
-            require(block.timestamp < _auctionEnd[namehash], "auction closed");
+            emit AuctionStarted(namehash, _auctionEnd[namehash]);
+        } else if (block.timestamp >= _auctionEnd[namehash]) {
+            revert AuctionClosed();
         }
 
-        require(_commits[namehash][msg.sender] == bytes32(0), "already committed");
+        if (_commits[namehash][msg.sender] != bytes32(0)) revert AuctionAlreadyCommitted();
 
         _commits[namehash][msg.sender] = bidHash;
         _commitTime[namehash][msg.sender] = block.timestamp;
@@ -67,7 +101,14 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit BidCommitted(namehash, msg.sender);
     }
 
-    // ---------- Reveal (T009) ----------
+    // -------------------------------------------------------------------
+    // Reveal Phase (T009)
+    // -------------------------------------------------------------------
+    /// @notice Reveals a previously committed bid.
+    /// @param name The plaintext domain name.
+    /// @param bidAmount The numeric bid value.
+    /// @param salt Random salt used in commit.
+    /// @dev Updates the highest bid and bidder if valid.
     function revealBid(
         string calldata name,
         uint256 bidAmount,
@@ -76,13 +117,12 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         bytes32 namehash = keccak256(abi.encodePacked(name));
         bytes32 commitHash = _commits[namehash][msg.sender];
 
-        require(commitHash != bytes32(0), "no commit found");
-        require(block.timestamp <= _auctionEnd[namehash], "reveal period ended");
-        require(_reveals[namehash][msg.sender] == 0, "already revealed");
+        if (commitHash == bytes32(0)) revert NoCommitFound();
+        if (block.timestamp > _auctionEnd[namehash]) revert RevealPeriodEnded();
+        if (_reveals[namehash][msg.sender] != 0) revert AlreadyRevealed();
 
-        // commit = keccak256(abi.encodePacked(name, bid, salt, bidder))
         bytes32 computed = keccak256(abi.encodePacked(name, bidAmount, salt, msg.sender));
-        require(computed == commitHash, "invalid reveal");
+        if (computed != commitHash) revert InvalidBidReveal();
 
         _reveals[namehash][msg.sender] = bidAmount;
 
@@ -94,30 +134,28 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit BidRevealed(namehash, msg.sender, bidAmount);
     }
 
-    // ---------- Finalize (T010) ----------
-    /// @notice closes the auction, registers the winner, and moves funds (one-shot)
-    /// @dev current funds model: winner's *deposit* is retained as proceeds;
-    ///      losers will withdraw in T011 via a pull-pattern `withdraw()`.
+    // -------------------------------------------------------------------
+    // Finalization (T010)
+    // -------------------------------------------------------------------
+    /// @notice Finalizes an auction after its end time.
+    /// @param name The plaintext domain name.
+    /// @dev Registers the winner in the Registry and transfers proceeds to treasury.
     function finalizeAuction(string calldata name) external override nonReentrant {
         bytes32 namehash = keccak256(abi.encodePacked(name));
 
         uint256 end = _auctionEnd[namehash];
-        require(end != 0, "auction not started");
-        require(block.timestamp > end, "auction not ended");
-        require(!_finalized[namehash], "already finalized");
+        if (end == 0) revert AuctionNotStarted();
+        if (block.timestamp <= end) revert AuctionNotEnded();
+        if (_finalized[namehash]) revert AuctionAlreadyFinalized();
 
         _finalized[namehash] = true;
 
         address winner = _highestBidder[namehash];
         uint256 winBid = _highestBid[namehash];
 
-        // if nobody revealed, do nothing except emit
         if (winner != address(0)) {
-            // mint/register ownership in the registry
-            // Registry supports bytes32-based registration in your current codebase
             registry.registerByHash(namehash, winner);
 
-            // move winner's *deposit* to proceeds (simple model for now)
             uint256 winnerDeposit = _deposits[namehash][winner];
             if (winnerDeposit > 0) {
                 _deposits[namehash][winner] = 0;
@@ -128,7 +166,32 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
         emit AuctionFinalized(namehash, winner, winBid);
     }
 
-    // ---------- Views ----------
+    // -------------------------------------------------------------------
+    // Refunds (T011)
+    // -------------------------------------------------------------------
+    /// @notice Allows losing bidders to withdraw their deposits.
+    /// @param namehash The hashed domain name.
+    /// @dev Implements pull pattern to prevent reentrancy.
+    function withdraw(bytes32 namehash) external nonReentrant {
+        if (!_finalized[namehash]) revert AuctionNotEnded();
+
+        address winner = _highestBidder[namehash];
+        if (msg.sender == winner) revert WinnerCannotWithdraw();
+
+        uint256 amount = _deposits[namehash][msg.sender];
+        if (amount == 0) revert NothingToWithdraw();
+
+        _deposits[namehash][msg.sender] = 0;
+
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        if (!ok) revert WithdrawFailed();
+
+        emit RefundIssued(namehash, msg.sender, amount);
+    }
+
+    // -------------------------------------------------------------------
+    // View Functions
+    // -------------------------------------------------------------------
     function getCommit(bytes32 namehash, address bidder) external view returns (bytes32) {
         return _commits[namehash][bidder];
     }
@@ -160,31 +223,4 @@ contract AuctionHouse is IAuctionHouse, ReentrancyGuard {
     function proceeds() external view returns (uint256) {
         return _proceeds;
     }
-
-    // ---------- Refunds (T011) ----------
-    /// @notice Losing bidders can withdraw their deposits after auction finalization.
-    /// @dev Implements pull-based refund pattern to prevent reentrancy vulnerabilities.
-    function withdraw(bytes32 namehash) external nonReentrant {
-        require(_finalized[namehash], "not finalized");
-
-        // Winner cannot withdraw (their deposit becomes proceeds)
-        address winner = _highestBidder[namehash];
-        require(msg.sender != winner, "winner cannot withdraw");
-
-        uint256 amount = _deposits[namehash][msg.sender];
-        require(amount > 0, "nothing to withdraw");
-
-        _deposits[namehash][msg.sender] = 0;
-
-        (bool ok, ) = payable(msg.sender).call{value: amount}("");
-        require(ok, "withdraw failed");
-
-        emit RefundIssued(namehash, msg.sender, amount);
-    }
-
-    /// @notice Emitted when a losing bidder successfully withdraws their deposit.
-    /// @param namehash The hashed name of the auctioned domain.
-    /// @param bidder The address that withdrew.
-    /// @param amount The withdrawn amount in wei.
-    event RefundIssued(bytes32 indexed namehash, address indexed bidder, uint256 amount);
 }
