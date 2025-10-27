@@ -8,11 +8,11 @@ Each domain is tokenized as a verifiable record of ownership stored immutably on
 
 ## Features (Planned / Implemented)
 
-- 🔖 **Domain Registration** — Users can claim unique `.ntu`-style domain names through smart contract validation.  
-- 🔄 **Ownership Transfer** — Domains can be securely transferred between wallets using token-based ownership.  
-- 🌐 **Domain Resolution** — Maps registered names to wallet addresses or metadata for dApps and web3 integrations.  
-- 🧾 **Commit–Reveal Auctions (in progress)** — Implements a fair, sealed-bid auction system for domain allocation.  
-- 🧱 **Immutable Registry** — All records are stored permanently on-chain, ensuring transparency and auditability.
+- **Domain Registration** — Users can claim unique `.ntu`-style domain names through smart contract validation.  
+- **Ownership Transfer** — Domains can be securely transferred between wallets using token-based ownership.  
+- **Domain Resolution** — Maps registered names to wallet addresses or metadata for dApps and web3 integrations.  
+- **Commit–Reveal Auctions (in progress)** — Implements a fair, sealed-bid auction system for domain allocation.  
+- **Immutable Registry** — All records are stored permanently on-chain, ensuring transparency and auditability.
 
 ---
 
