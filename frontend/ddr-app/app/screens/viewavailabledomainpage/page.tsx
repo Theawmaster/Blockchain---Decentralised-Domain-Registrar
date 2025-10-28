@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ethers } from "ethers";
+import { Layout } from "@/app/layout";
+import { useRouter } from "next/navigation";
 
 interface Domain {
   name: string;
@@ -13,37 +14,23 @@ export default function DomainList() {
   const [query, setQuery] = useState("");
   const [domains, setDomains] = useState<Domain[]>([]);
   const [filtered, setFiltered] = useState<Domain[]>([]);
-
-  // Example smart contract ABI and address (replace with your own)
-  const CONTRACT_ADDRESS = "0xYourContractAddress";
-  const CONTRACT_ABI = [
-    "function getAllDomains() public view returns (tuple(string name, address owner, uint256 expiration, bool active)[] memory)"
-  ];
-
+  const router = useRouter();
+  // Load domains from local JSON file
   useEffect(() => {
-    async function fetchDomains() {
+    async function loadDomains() {
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-        const domainList = await contract.getAllDomains();
-
-        const formatted = domainList.map((d: any) => ({
-          name: d.name,
-          expiration: new Date(Number(d.expiration) * 1000).toLocaleDateString(),
-          status: d.active ? "Active" : "Expired",
-        }));
-
-        setDomains(formatted);
-        setFiltered(formatted);
+        const res = await fetch("/domains.json");
+        const data = await res.json();
+        setDomains(data);
+        setFiltered(data);
       } catch (err) {
-        console.error("Failed to load domains:", err);
+        console.error("Error loading domains:", err);
       }
     }
-
-    fetchDomains();
+    loadDomains();
   }, []);
 
-  // Filtering
+  // Filter domains based on search query
   useEffect(() => {
     const lower = query.toLowerCase();
     setFiltered(domains.filter((d) => d.name.toLowerCase().includes(lower)));
@@ -51,13 +38,13 @@ export default function DomainList() {
 
   return (
     <div className="text-center">
-      <div className="bg-sky-100 items-center justify-center">
-            <p>hee</p>
-        </div>  
+       
+      <Layout/>
 
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-8 pt-9">
         <h1 className="text-3xl font-bold text-center text-sky-700 mb-6">
-          Registered Domain Names
+          All Bidding Domain Names
         </h1>
 
         <div className="flex justify-center mb-8">
@@ -75,18 +62,26 @@ export default function DomainList() {
             <thead className="bg-sky-100">
               <tr>
                 <th className="px-4 py-2 text-left font-semibold text-gray-700">Domain</th>
-                <th className="px-4 py-2 text-left font-semibold text-gray-700">Bid Time Remaining</th>
+                <th className="px-4 py-2 text-left font-semibold text-gray-700">Expiration</th>
                 <th className="px-4 py-2 text-left font-semibold text-gray-700">Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length > 0 ? (
                 filtered.map((domain, idx) => (
-                  <tr key={idx} className="border-t hover:bg-sky-50 transition-all duration-150">
-                    <td className="px-4 py-3 font-medium">{domain.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{domain.expiration}</td>
+                  <tr key={idx} className="border-t hover:bg-sky-50 transition-all duration-150" onClick={() =>
+                    router.push(
+                      `/screens/biddingpage?name=${encodeURIComponent(
+                        domain.name
+                      )}&expiration=${encodeURIComponent(
+                        domain.expiration
+                      )}&status=${encodeURIComponent(domain.status)}`
+                    )
+                  }>
+                    <td className="text-left px-4 py-3 font-medium">{domain.name}</td>
+                    <td className="text-left px-4 py-3 text-gray-600">{domain.expiration}</td>
                     <td
-                      className={`px-4 py-3 font-semibold ${
+                      className={`text-left px-4 py-3 font-semibold ${
                         domain.status === "Active" ? "text-green-600" : "text-red-500"
                       }`}
                     >
@@ -96,7 +91,7 @@ export default function DomainList() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-6 text-gray-500">
+                  <td colSpan={3} className="text-center py-6 text-gray-500">
                     No domains found.
                   </td>
                 </tr>

@@ -13,9 +13,9 @@ export default function Home() {
 
   
   if (isConnected) {
-    disconnect();
+    // disconnect();
     localStorage.removeItem("wagmi.store");
-    redirect("/screens/dashboard", RedirectType.push);
+    redirect("/screens/homepage", RedirectType.push);
   }
 
   return (
@@ -44,7 +44,7 @@ export default function Home() {
 
         {/* Connect CTA */}
         <div className="mt-2">
-          <WalletConnect onAddWallet={() => redirect("/screens/dashboard")} />
+          <WalletConnect onAddWallet={() => redirect("/screens/homepage")} />
           <p className="text-sm text-gray-500 mt-3">
             Don’t have a wallet yet? Install{" "}
             <Link

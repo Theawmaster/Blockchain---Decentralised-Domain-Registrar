@@ -1,0 +1,5 @@
+[
+  { "name": "example.eth", "expiration": "2025-12-31", "status": "Active" },
+  { "name": "mydomain.eth", "expiration": "2024-06-15", "status": "Expired" },
+  { "name": "crypto.eth", "expiration": "2026-01-20", "status": "Active" }
+]
