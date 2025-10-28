@@ -121,7 +121,7 @@ describe("AuctionHouse: Commit Phase", () => {
     expect(await auction.getHighestBidder(namehash)).to.equal(alice.address);
   });
 
-  it("finalizes auction, assigns winner, and locks proceeds (T010)", async () => {
+  it("finalizes auction, assigns winner, and locks proceeds", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();
     const [deployer, alice, bob] = signers;
     if (!alice || !bob) throw new Error("signers missing");
@@ -167,7 +167,7 @@ describe("AuctionHouse: Commit Phase", () => {
       .to.be.revertedWithCustomError(auction, "AuctionAlreadyFinalized");
   });
 
-  it("allows losing bidders to withdraw safely (T011)", async () => {
+  it("allows losing bidders to withdraw safely", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();
     const [deployer, alice, bob] = signers;
     if (!alice || !bob) throw new Error("signers missing");
@@ -220,7 +220,7 @@ describe("AuctionHouse: Commit Phase", () => {
       .to.be.revertedWithCustomError(auc, "NothingToWithdraw");
   });
 
-  it("allows owner to set and resolve address (T012)", async () => {
+  it("allows owner to set and resolve address", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();
     const [deployer, alice] = signers;
     if (!alice) throw new Error("signers missing");
@@ -241,7 +241,7 @@ describe("AuctionHouse: Commit Phase", () => {
     expect(await reg.resolve(name)).to.equal(target);
   });
 
-  it("allows losing bidders to withdraw safely (T011)", async () => {
+  it("allows losing bidders to withdraw safely", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();
     const [deployer, alice, bob] = signers;
     if (!alice || !bob) throw new Error("signers missing");
@@ -290,13 +290,13 @@ describe("AuctionHouse: Commit Phase", () => {
     expect(effectiveAfter).to.be.gt(before);
 
     // --- Winner cannot withdraw ---
-    await expect(auc.connect(bob).withdraw(namehash)).to.be.revertedWith("winner cannot withdraw");
+    await expect(auc.connect(bob).withdraw(namehash)).to.be.revertedWithCustomError(auc, "WinnerCannotWithdraw");
 
     // --- Double withdraw prevention ---
-    await expect(auc.connect(alice).withdraw(namehash)).to.be.revertedWith("nothing to withdraw");
+    await expect(auc.connect(alice).withdraw(namehash)).to.be.revertedWithCustomError(auc, "NothingToWithdraw");
   });
 
-  it("allows owner to set and resolve address (T012)", async () => {
+  it("allows owner to set and resolve address", async () => {
     const signers: HardhatEthersSigner[] = await ethers.getSigners();
     const [deployer, alice] = signers;
     if (!alice) throw new Error("signers missing");
