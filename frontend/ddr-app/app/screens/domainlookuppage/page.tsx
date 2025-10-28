@@ -1,21 +1,16 @@
 "use client";
 
+"use client";
+
 import { useState } from "react";
 import { useReadContract } from "wagmi";
 import { Layout } from "@/app/layout";
-import {Copy, Send, Wallet, ExternalLink, X} from "lucide-react";
+import { CONTRACTS } from "@/lib/web3/contract";
+import { X, Send } from "lucide-react";
 import SendTransaction from "@/components/SendTransaction";
-// Replace with your actual contract details
-const CONTRACT_ADDRESS = "0xYourContractAddressHere";
-const CONTRACT_ABI = [
-  {
-    inputs: [{ name: "name", type: "string" }],
-    name: "resolveDomain",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+import { ethers } from "ethers";
+
+const REGISTRY = CONTRACTS.registry;
 
 export default function domainlookuppage() {
   const [query, setQuery] = useState("");
@@ -24,20 +19,25 @@ export default function domainlookuppage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
   // Call the contract only when the user clicks "Search"
   const { data, refetch, isFetching } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    abi: CONTRACT_ABI,
-    functionName: "resolveDomain",
-    args: [domain],
-    query: { enabled: false }, // only run manually
+    address: REGISTRY.address as `0x${string}`,
+    abi: REGISTRY.abi,
+    functionName: "resolve",
+    args: [domain as `0x${string}`],
+    query: { enabled: false },
   });
 
   const handleSearch = async () => {
     if (!query.trim()) return;
-    setDomain(query.trim());
+
+    // hash the domain exactly the same way AuctionHouse/Registry did
+    const hashed = ethers.keccak256(ethers.toUtf8Bytes(query.trim()));
+
+    setDomain(hashed);
+
     const result = await refetch();
-    if (result?.data) setOwner(result.data as string);
-    else setOwner(null);
+    setOwner(result?.data ? (result.data as string) : null);
   };
+
 
   return (
     <div className="text-center">
