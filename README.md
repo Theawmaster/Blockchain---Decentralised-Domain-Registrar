@@ -39,11 +39,18 @@ git clone https://github.com/<your-repository>/Decentralised-Domain-Registrar.gi
 cd decentralized-domain-registry
 npm install
 
+# Clean the contract
+npx hardhat clean
+
 # Compile contracts
 npx hardhat compile
 
 # Run tests
 npx hardhat test
+
+# Deployment of contract
+npx hardhat run scripts/deploy.ts --network sepolia
+
 ```
 
 ### Environment Variables
