@@ -1,83 +1,137 @@
-# Decentralized Domain Registry (DDR)
+# Decentralized Domain Registry (DDR) — Full Stack
 
-A **blockchain-based decentralized domain registrar** built using [Hardhat](https://hardhat.org/) and Solidity.  
-This project enables users to **register, manage, and transfer domain names on-chain** securely, removing the need for centralized registrars.  
-Each domain is tokenized as a verifiable record of ownership stored immutably on the Ethereum blockchain.
-
----
-
-## Features (Planned / Implemented)
-
-- **Domain Registration** — Users can claim unique `.ntu`-style domain names through smart contract validation.  
-- **Ownership Transfer** — Domains can be securely transferred between wallets using token-based ownership.  
-- **Domain Resolution** — Maps registered names to wallet addresses or metadata for dApps and web3 integrations.  
-- **Commit–Reveal Auctions (in progress)** — Implements a fair, sealed-bid auction system for domain allocation.  
-- **Immutable Registry** — All records are stored permanently on-chain, ensuring transparency and auditability.
+A **blockchain-based decentralized domain registrar** that allows users to register, manage, transfer, and lookup Web3-native domain names.  
+The system is designed to be **censorship-resistant, self-sovereign, and transparent**, with ownership stored immutably on-chain.
 
 ---
 
-## Tech Stack
+## Core Features
+
+| Feature | Status | Description |
+|--------|--------|-------------|
+| Domain Registration | ✅ | Users can register unique `.ntu`-style domains. |
+| Domain Lookup | ✅ | Resolve domain → wallet or metadata. |
+| View Owned Domains | ✅ | Display domains linked to the connected wallet. |
+| Wallet Dashboard | ✅ | View chain, balance, and account details. |
+| Light/Dark Theme Toggle | ✅ | LocalStorage-persisted UI theme. |
+| Network Switcher | ✅ | Switch between Ethereum / Sepolia networks. |
+| Commit–Reveal Bidding | 🏗 In Progress | Fair sealed-bid auctions for high-value names. |
+
+---
+
+## Tech Stack Overview
 
 | Layer | Technology |
-|--------|-------------|
-| **Smart Contracts** | Solidity (v0.8.24), OpenZeppelin Libraries |
-| **Framework** | Hardhat (TypeScript) |
-| **Testing** | Mocha + Chai |
-| **Frontend (optional)** | React / Next.js + Ethers.js / wagmi |
-| **Deployment** | Sepolia Testnet via Foundry / Hardhat scripts |
+|------|------------|
+| Smart Contracts | Solidity + OpenZeppelin |
+| Local Blockchain / Deployment | Hardhat (TypeScript) |
+| Wallet Integration | wagmi + viem + MetaMask |
+| Frontend UI | Next.js (App Router) + Tailwind CSS |
+| Icons | lucide-react |
+| Animations (optional) | Framer Motion |
 
 ---
 
-## Installation & Setup
+## Backend Installation (Smart Contracts)
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-username>/decentralized-domain-registry.git
+git clone https://github.com/<your-repository>/Decentralised-Domain-Registrar.git
 cd decentralized-domain-registry
-
-# Install dependencies
 npm install
 
-# Compile smart contracts
+# Compile contracts
 npx hardhat compile
 
-# Run test suite
+# Run tests
 npx hardhat test
 ```
 
->  *Ensure you have Node.js ≥18 and Hardhat installed globally before running.*
+### Environment Variables
+Create `.env`:
+```
+SEPOLIA_RPC_URL=<Infura or Alchemy RPC URL>
+PRIVATE_KEY=<Wallet private key>
+ETHERSCAN_API_KEY=<optional>
+```
 
 ---
 
-## Secrets Configuration
-
-Create a `.env` file in the project root directory containing your credentials:
+## Frontend Setup (Next.js)
 
 ```
-SEPOLIA_RPC_URL=<Infura or Alchemy endpoint>
-PRIVATE_KEY=<your wallet private key>
-ETHERSCAN_API_KEY=<your Etherscan API key>
+cd frontend/ddr-app
+npm install
+npm run dev
 ```
 
-> **Security Note:** Never commit your `.env` or private keys to version control systems such as GitHub.
+App runs at:
+```
+http://localhost:3000
+```
 
 ---
 
-## License
+## Frontend Architecture
 
-This project is licensed under the **GNU General Public License (GPL-3.0)**.  
-You are free to use, modify, and distribute the code under the same terms.
+```
+frontend/ddr-app/
+ ├── app/
+ │   ├── screens/               # UI screens (pages)
+ │   │   ├── authpage/
+ │   │   ├── homepage/
+ │   │   ├── viewavailabledomainpage/
+ │   │   ├── viewregistereddomainpage/
+ │   │   ├── domainlookuppage/
+ │   │   └── viewwalletdetailpage/
+ │   ├── layout.tsx             # Root layout w/ providers
+ │   └── globals.css            # Theme variables
+ ├── components/
+ │   ├── AppNav.tsx             # Top navigation bar
+ │   ├── ThemeToggle.tsx        # Light/Dark mode switch
+ │   └── NetworkSwitcher.tsx    # Chain switching dropdown
+ ├── lib/web3/Web3Provider.tsx  # wagmi + chains config
+ └── ...
+```
+
+---
+
+## Theme System
+
+Themes use CSS variables and persist in localStorage:
+
+- `ThemeToggle.tsx` switches light/dark
+- `globals.css` defines color tokens
+
+No tailwind.config customization required.
+
+---
+
+## Network Switching
+
+`NetworkSwitcher.tsx` lets the user switch between supported chains:
+
+```ts
+import { useSwitchChain } from "wagmi";
+const { chains, switchChain } = useSwitchChain();
+```
+
+Chains are defined centrally in `Web3Provider.tsx`.
 
 ---
 
 ## Contributors
 
-| Role | Name | Responsibility |
-|------|------|----------------|
-|  Smart Contracts & Hardhat Setup | **Alvin** | Solidity development, contract architecture |
-|  Frontend & Integration | **Ivan** | React/Next.js integration and wallet connectivity |
-|  Testing & Documentation | **Fernando** | Unit tests, reports, and rubric documentation |
+| Role | Name |
+|------|------|
+| Smart Contract & Protocol Design | Alvin |
+| Frontend & UX Engineering | Ivan |
+| Testing & Documentation | Fernando |
 
 ---
 
->  *The Decentralized Domain Registry demonstrates how blockchain technology can modernize digital identity management through transparent, tamper-proof, and verifiable domain ownership.*
+## License
+
+This project is licensed under **GPL-3.0**.  
+You are free to use, modify, and distribute under the same terms.
+
+> *This project demonstrates how decentralized naming can enhance Web3 identity ownership, transparency, and sovereignty.*

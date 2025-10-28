@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { CONTRACTS } from "@/lib/web3/contract";
 
 interface Domain {
   name: string;
@@ -15,10 +16,8 @@ export default function DomainList() {
   const [filtered, setFiltered] = useState<Domain[]>([]);
 
   // Example smart contract ABI and address (replace with your own)
-  const CONTRACT_ADDRESS = "0xYourContractAddress";
-  const CONTRACT_ABI = [
-    "function getAllDomains() public view returns (tuple(string name, address owner, uint256 expiration, bool active)[] memory)"
-  ];
+  const CONTRACT_ADDRESS = CONTRACTS.registry.address as `0x${string}`;
+  const CONTRACT_ABI = CONTRACTS.registry.abi;
 
   useEffect(() => {
     async function fetchDomains() {
