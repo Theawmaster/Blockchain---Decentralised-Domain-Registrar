@@ -77,6 +77,7 @@ http://localhost:3000
 
 ## Frontend Architecture
 
+App runs at:
 ```
 frontend/ddr-app/
  ├── app/
