@@ -15,7 +15,7 @@ The system is designed to be **censorship-resistant, self-sovereign, and transpa
 | Wallet Dashboard | ✅ | View chain, balance, and account details. |
 | Light/Dark Theme Toggle | ✅ | LocalStorage-persisted UI theme. |
 | Network Switcher | ✅ | Switch between Ethereum / Sepolia networks. |
-| Commit–Reveal Bidding | 🏗 In Progress | Fair sealed-bid auctions for high-value names. |
+| Commit–Reveal Bidding | ✅ | Fair sealed-bid auctions for high-value names. |
 
 ---
 
