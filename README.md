@@ -39,9 +39,6 @@ git clone https://github.com/<your-repository>/Decentralised-Domain-Registrar.gi
 cd decentralized-domain-registry
 npm install
 
-# Clean the contract
-npx hardhat clean
-
 # Compile contracts
 npx hardhat compile
 
