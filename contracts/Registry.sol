@@ -27,9 +27,16 @@ contract Registry is IRegistry, Ownable, Pausable {
 
     function _isValidName(string memory name) internal pure returns (bool) {
         bytes memory b = bytes(name);
-        if (b.length < 3 || b.length > 63) return false;
-        if (b[0] == "-" || b[b.length - 1] == "-") return false;
-        for (uint256 i; i < b.length; i++) {
+        bytes memory suffix = bytes(".ntu");
+
+        // Must end with .ntu
+        if (b.length <= suffix.length) return false;
+        for (uint256 i = 0; i < suffix.length; i++) {
+            if (b[b.length - suffix.length + i] != suffix[i]) return false;
+        }
+
+        // Check label (everything before .ntu)
+        for (uint256 i = 0; i < b.length - suffix.length; i++) {
             bytes1 c = b[i];
             if (
                 !(c >= 0x61 && c <= 0x7A) && // a–z
@@ -38,6 +45,7 @@ contract Registry is IRegistry, Ownable, Pausable {
             ) return false;
             if (i > 0 && b[i - 1] == 0x2D && c == 0x2D) return false;
         }
+
         return true;
     }
 
@@ -104,4 +112,23 @@ contract Registry is IRegistry, Ownable, Pausable {
     function nameOf(bytes32 namehash) external view returns (string memory) {
         return _nameOf[namehash];
     }
+
+    function namesOfOwner(address owner) external view returns (string[] memory) {
+        uint256 count;
+        for (uint256 i; i < _allNames.length; i++) {
+            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
+                count++;
+            }
+        }
+
+        string[] memory result = new string[](count);
+        uint256 j;
+        for (uint256 i; i < _allNames.length; i++) {
+            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
+                result[j++] = _allNames[i];
+            }
+        }
+        return result;
+    }
+
 }

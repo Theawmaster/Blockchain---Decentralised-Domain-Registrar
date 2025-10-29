@@ -1,15 +1,23 @@
 "use client";
 
 import { Web3Provider } from "@/lib/web3/Web3Provider";
+import { NotificationProvider } from "@/app/context/NotificationContext"; // ✅ add this
 import "./globals.css";
 import { usePathname, useRouter } from "next/navigation";
 import { useAccount, useDisconnect } from "wagmi";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Web3Provider>{children}</Web3Provider>
+        {/* ✅ Wrap everything inside NotificationProvider */}
+        <Web3Provider>
+          <NotificationProvider>
+            {children}
+            <Toaster position="top-center" />
+          </NotificationProvider>
+        </Web3Provider>
       </body>
     </html>
   );
@@ -19,7 +27,6 @@ export function Layout() {
   const router = useRouter();
   const pathname = usePathname();
   const { address } = useAccount();
-
   const { disconnect } = useDisconnect();
 
   const getActive = (path: string) => pathname === path;
@@ -49,12 +56,11 @@ export function Layout() {
 
         <NavButton
           label="Domain Lookup"
-          active={getActive("/screens/domainlookuppage")}
-          onClick={() => router.push("/screens/domainlookuppage")}
+          active={getActive("/screens/active-auctions")}
+          onClick={() => router.push("/screens/active-auctions")}
         />
       </div>
 
-      {/* Push right controls to the edge */}
       <div className="flex-1" />
 
       {/* Show logout only if wallet connected */}
@@ -62,8 +68,8 @@ export function Layout() {
         <button
           onClick={() => {
             disconnect();
-            localStorage.removeItem("wagmi.store");   
-            router.replace("/screens/authpage");      
+            localStorage.removeItem("wagmi.store");
+            router.replace("/screens/authpage");
           }}
           className="
             px-4 py-2 rounded-lg font-medium

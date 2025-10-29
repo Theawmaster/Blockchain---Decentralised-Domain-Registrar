@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AppNav() {
   const router = useRouter();
@@ -34,13 +35,17 @@ export default function AppNav() {
       {/* Nav Links */}
       <div className="flex gap-4 text-sm">
         <NavLink href="/screens/viewavailabledomainpage" label="Register" />
-        <NavLink href="/screens/viewregistereddomainpage" label="My Domains" />
-        <NavLink href="/screens/domainlookuppage" label="Lookup" />
-        <NavLink href="/screens/viewwalletdetailpage" label="Wallet" />
+        <NavLink href="/screens/viewregistereddomainpage" label="Owned Domain" />
+        <NavLink href="/screens/active-auctions" label="Auction List" />
+        <NavLink href="/screens/viewwalletdetailpage" label="My Wallet" />
       </div>
 
       {/* Push right */}
       <div className="flex-1" />
+
+      {/* Notification */}
+      {/* <div className="flex-1" />
+      <NotificationBell /> */}
 
       {/* Theme Toggle */}
       <ThemeToggle />
