@@ -453,6 +453,25 @@
       "inputs": [
         {
           "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "domainOf",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
           "name": "",
           "type": "bytes32"
         }
@@ -489,6 +508,50 @@
           "internalType": "bytes32[]",
           "name": "",
           "type": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getAuctionInfo",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "domain",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "commitEnd_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "revealEnd_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "finalized",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "highestBidder_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "highestBid_",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -651,44 +714,6 @@
           "internalType": "bool",
           "name": "",
           "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "namehash",
-          "type": "bytes32"
-        }
-      ],
-      "name": "phase",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes32[]",
-          "name": "hashes",
-          "type": "bytes32[]"
-        }
-      ],
-      "name": "phaseBatch",
-      "outputs": [
-        {
-          "internalType": "string[]",
-          "name": "out",
-          "type": "string[]"
         }
       ],
       "stateMutability": "view",

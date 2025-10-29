@@ -2,128 +2,114 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useWriteContract } from "wagmi";
+import { useWriteContract, useAccount } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
-import { keccak256, encodePacked, parseEther } from "viem";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 
-/**
- * Normalize user input to <name>.ntu
- * Avoids doubling suffix and trims whitespace.
- */
-function normalize(name: string) {
-  let n = name.trim().toLowerCase();
-  if (n.endsWith(".ntu")) return n;
-  return n + ".ntu";
+/* Modal Component */
+function AppModal({ open, title, message, onClose }: any) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+      <div className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
+        rounded-xl shadow-xl p-6 w-[320px] text-center space-y-4">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="opacity-80">{message}</p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
 }
+
+/* Normalize Domain */
+const normalize = (name: string) =>
+  name.trim().toLowerCase().endsWith(".ntu")
+    ? name.trim().toLowerCase()
+    : `${name.trim().toLowerCase()}.ntu`;
 
 export default function StartAuctionPage() {
   const router = useRouter();
   const params = useSearchParams();
+  const domain = normalize(params.get("name") || "");
 
-  const rawInput = params.get("name") || "";
-  const domainParam = normalize(rawInput);
-  const validDomain = domainParam.endsWith(".ntu");
-
-  const namehash = keccak256(encodePacked(["string"], [domainParam]));
-  const [deposit, setDeposit] = useState("");
-
+  const { address } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
 
-  async function handleStartAuction() {
-    if (!validDomain) {
-      alert("❗ Only .ntu domains can be auctioned.");
-      return;
-    }
+  const [modal, setModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onClose: () => {},
+  });
 
-    const depositValue = Number(deposit);
-    if (!deposit || depositValue <= 0) {
-      alert("Please enter a valid positive deposit (ETH).");
-      return;
-    }
+  const showModal = (title: string, message: string, onClose?: () => void) =>
+    setModal({
+      open: true,
+      title,
+      message,
+      onClose: onClose ?? (() => setModal((m) => ({ ...m, open: false }))),
+    });
+
+  async function handleStartAuction() {
+    if (!address)
+      return showModal("Wallet Required", "Please connect your wallet first.");
 
     try {
-
-        const ZERO_SALT = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
-        const blindCommit = keccak256(
-        encodePacked(["string", "uint256", "bytes32", "address"], [
-            domainParam,
-            BigInt(0),
-            ZERO_SALT,
-            CONTRACTS.auctionHouse.address,
-        ])
-        );
-
-        await writeContractAsync({
+      await writeContractAsync({
         address: CONTRACTS.auctionHouse.address,
         abi: CONTRACTS.auctionHouse.abi,
-        functionName: "commitBid",
-        args: [namehash, blindCommit],
-        value: parseEther(deposit),
-        });
-      
-        alert(`✅ Auction started for ${domainParam}!`);
-        router.push("/screens/active-auctions");
+        functionName: "startAuction",
+        args: [domain],
+      });
 
+      showModal(
+        "Auction Started ✅",
+        `The auction for ${domain} has begun.`,
+        () => router.push("/screens/active-auctions")
+      );
     } catch (err: any) {
-      console.error(err);
-      alert(err?.shortMessage || "❌ Transaction failed. Check console for details.");
+      showModal("Transaction Failed ❌", err?.shortMessage || "Please try again.");
     }
   }
 
   return (
     <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md
-        bg-[var(--background)] text-[var(--foreground)]
-        transition-colors p-10 space-y-8">
+      <AppModal {...modal} />
 
-        {/* Header Controls */}
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
+
+        {/* Header */}
         <div className="flex justify-between items-center">
           <button
             onClick={() => router.back()}
             className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+            <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <ThemeToggle />
         </div>
 
         <h1 className="text-2xl font-bold text-center">Start Auction</h1>
-        <p className="text-center text-lg font-semibold">{domainParam}</p>
+        <p className="text-center text-lg font-semibold">{domain}</p>
 
-        {!validDomain && (
-          <p className="text-red-500 text-center text-sm font-medium mt-1">
-            ❗ Only .ntu domains are allowed.
-          </p>
-        )}
-
-        <div className="space-y-3 text-center">
-          <input
-            type="number"
-            min="0"
-            step="0.001"
-            placeholder="Enter starting deposit (ETH)"
-            className="w-full max-w-xs mx-auto px-4 py-2 rounded-lg border
-              border-[var(--border)] bg-[var(--card-bg)] text-[var(--foreground)]
-              focus:ring-2 focus:ring-sky-500 outline-none transition"
-            value={deposit}
-            onChange={(e) => setDeposit(e.target.value)}
-          />
-
+        <div className="flex justify-center pt-8">
           <button
             onClick={handleStartAuction}
-            disabled={isPending || !validDomain}
-            className="px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold
-              disabled:opacity-40 disabled:cursor-not-allowed transition"
+            disabled={isPending}
+            className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-600 hover:bg-gray-700
+              disabled:opacity-40 transition"
           >
             {isPending ? "Starting..." : "Start Auction"}
           </button>
         </div>
-
       </div>
     </div>
   );
