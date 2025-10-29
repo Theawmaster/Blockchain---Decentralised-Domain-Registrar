@@ -14,7 +14,17 @@
         },
         {
           "internalType": "uint256",
-          "name": "duration_",
+          "name": "commitDuration_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "revealDuration_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "defaultExpiry_",
           "type": "uint256"
         }
       ],
@@ -78,6 +88,11 @@
     },
     {
       "inputs": [],
+      "name": "NameAlreadyRegisteredOnRegistry",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "NoCommitFound",
       "type": "error"
     },
@@ -116,6 +131,11 @@
     {
       "inputs": [],
       "name": "RevealPeriodEnded",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "RevealPhaseNotOpen",
       "type": "error"
     },
     {
@@ -165,7 +185,13 @@
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "endTime",
+          "name": "commitEnd",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "revealEnd",
           "type": "uint256"
         }
       ],
@@ -253,6 +279,25 @@
       "inputs": [
         {
           "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProceedsSwept",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "internalType": "bytes32",
           "name": "namehash",
           "type": "bytes32"
@@ -287,25 +332,6 @@
       "type": "event"
     },
     {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "namehash",
-          "type": "bytes32"
-        }
-      ],
-      "name": "auctionEnd",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "beneficiary",
       "outputs": [
@@ -338,7 +364,58 @@
     },
     {
       "inputs": [],
-      "name": "duration",
+      "name": "commitDuration",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "commitEnd",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "defaultExpiry",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "expiration",
       "outputs": [
         {
           "internalType": "uint256",
@@ -525,6 +602,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "phase",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "proceeds",
       "outputs": [
@@ -594,6 +690,45 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "revealDuration",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "revealEnd",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sweepProceeds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -625,6 +760,10 @@
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
     }
   ]
 }

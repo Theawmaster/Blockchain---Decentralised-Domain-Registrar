@@ -5,39 +5,26 @@ import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-/// -----------------------------------------------------------------------
-///                              Custom Errors
-/// -----------------------------------------------------------------------
 error InvalidNameFormat();
 error NameAlreadyRegistered();
 error DomainNotRegistered();
 error NotDomainOwner();
 
-/// -----------------------------------------------------------------------
-/// @title Registry
-/// @notice Manages ownership and resolution of `.ntu` domain names.
-/// @dev Provides domain registration, ownership lookups, and resolver mapping.
-/// @custom:phase Registry Core v0.4 (T014 - Access Control & Pausable)
-/// -----------------------------------------------------------------------
 contract Registry is IRegistry, Ownable, Pausable {
-    // -------------------------------------------------------------------
-    // Storage Layout
-    // -------------------------------------------------------------------
-    /// @dev namehash → owner address
+    // namehash → owner
     mapping(bytes32 => address) private _ownerOf;
-    // namehash => resolved address (T012)
+
+    // namehash → resolved address
     mapping(bytes32 => address) private _resolves;
 
-    // -------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------
-    /// @notice Initializes Ownable with deployer as the initial owner.
+    // namehash → original domain name (reverse lookup)
+    mapping(bytes32 => string) private _nameOf;
+
+    // List of registered names
+    string[] private _allNames;
+
     constructor() Ownable(msg.sender) {}
 
-    // -------------------------------------------------------------------
-    // Internal Validation
-    // -------------------------------------------------------------------
-    /// @dev Validates domain name format: [a–z0–9-], no double or leading/trailing dashes.
     function _isValidName(string memory name) internal pure returns (bool) {
         bytes memory b = bytes(name);
         if (b.length < 3 || b.length > 63) return false;
@@ -47,16 +34,13 @@ contract Registry is IRegistry, Ownable, Pausable {
             if (
                 !(c >= 0x61 && c <= 0x7A) && // a–z
                 !(c >= 0x30 && c <= 0x39) && // 0–9
-                !(c == 0x2D)                 // hyphen
+                !(c == 0x2D)
             ) return false;
             if (i > 0 && b[i - 1] == 0x2D && c == 0x2D) return false;
         }
         return true;
     }
 
-    // -------------------------------------------------------------------
-    // Registration (Public)
-    // -------------------------------------------------------------------
     function register(string calldata name, address owner)
         external
         override
@@ -67,22 +51,12 @@ contract Registry is IRegistry, Ownable, Pausable {
         if (_ownerOf[namehash] != address(0)) revert NameAlreadyRegistered();
 
         _ownerOf[namehash] = owner;
+        _nameOf[namehash] = name;
+        _allNames.push(name);
+
         emit NameRegistered(namehash, owner, name);
     }
 
-    function registerByHash(bytes32 namehash, address owner)
-        external
-        override
-        whenNotPaused
-    {
-        if (_ownerOf[namehash] != address(0)) revert NameAlreadyRegistered();
-        _ownerOf[namehash] = owner;
-        emit NameRegistered(namehash, owner, "");
-    }
-
-    // -------------------------------------------------------------------
-    // Ownership View
-    // -------------------------------------------------------------------
     function ownerOf(bytes32 namehash)
         external
         view
@@ -92,9 +66,15 @@ contract Registry is IRegistry, Ownable, Pausable {
         return _ownerOf[namehash];
     }
 
-    // -------------------------------------------------------------------
-    // Resolver API (T012)
-    // -------------------------------------------------------------------
+    function resolve(string calldata name)
+        external
+        view
+        returns (address resolved)
+    {
+        bytes32 namehash = keccak256(abi.encodePacked(name));
+        return _resolves[namehash];
+    }
+
     function setResolve(string calldata name, address resolved)
         external
         whenNotPaused
@@ -108,23 +88,20 @@ contract Registry is IRegistry, Ownable, Pausable {
         emit ResolveSet(namehash, resolved);
     }
 
-    function resolve(string calldata name)
-        external
-        view
-        returns (address resolved)
-    {
-        bytes32 namehash = keccak256(abi.encodePacked(name));
-        resolved = _resolves[namehash];
-    }
-
-    // -------------------------------------------------------------------
-    // Admin Controls (T014)
-    // -------------------------------------------------------------------
     function pause() external onlyOwner {
         _pause();
     }
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function getAllNames() external view returns (string[] memory) {
+        return _allNames;
+    }
+
+    /// NEW: Helpful for frontend — lookup name from hash
+    function nameOf(bytes32 namehash) external view returns (string memory) {
+        return _nameOf[namehash];
     }
 }
