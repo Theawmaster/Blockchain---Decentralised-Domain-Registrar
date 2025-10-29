@@ -88,6 +88,11 @@
     },
     {
       "inputs": [],
+      "name": "InvalidDomainSuffix",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "NameAlreadyRegisteredOnRegistry",
       "type": "error"
     },
@@ -363,6 +368,24 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "bidHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "commitBidWithName",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "commitDuration",
       "outputs": [
@@ -384,6 +407,25 @@
         }
       ],
       "name": "commitEnd",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "commitSecondsLeft",
       "outputs": [
         {
           "internalType": "uint256",
@@ -437,6 +479,19 @@
       "name": "finalizeAuction",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getActiveAuctions",
+      "outputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "",
+          "type": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -621,6 +676,25 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "hashes",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "phaseBatch",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "out",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "proceeds",
       "outputs": [
@@ -719,6 +793,38 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "namehash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "revealSecondsLeft",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "name": "startAuction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
