@@ -1,112 +1,137 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { Layout } from "@/app/layout";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { CONTRACTS } from "@/lib/web3/contract";
+import { hashBid } from "@/lib/web3/auctionUtils";
+import { keccak256, toBytes, parseEther } from "viem";
 
 export default function BiddingPage() {
   const params = useSearchParams();
-  const name = params.get("name");
-  const expiration = params.get("expiration");
-  const status = params.get("status");
+  const name = params.get("name") as string;
+  const namehash = keccak256(toBytes(name)); // ✅ CONVERT TO BYTES32
 
-  const [bidPrice, setBidPrice] = useState("");
+  const router = useRouter();
+  const { address } = useAccount();
+
+  const [phase, setPhase] = useState<"commit"|"reveal"|"ended">("commit");
+  const [bid, setBid] = useState("");
+  const [salt, setSalt] = useState("");
   const [message, setMessage] = useState("");
-  const [winningBid, setWinningBid] = useState<number | null>(null);
 
-  // Fetch winning bid (placeholder logic — replace with Ethereum contract call)
+  // Load auction end time
+  const { data: endTime } = useReadContract({
+    address: CONTRACTS.auctionHouse.address,
+    abi: CONTRACTS.auctionHouse.abi,
+    functionName: "auctionEnd",
+    args: [namehash],
+  });
+
+  // Load finalized state
+  const { data: finalized } = useReadContract({
+    address: CONTRACTS.auctionHouse.address,
+    abi: CONTRACTS.auctionHouse.abi,
+    functionName: "isFinalized",
+    args: [namehash],
+  });
+
+  // Highest Bid
+  const { data: highestBid } = useReadContract({
+    address: CONTRACTS.auctionHouse.address,
+    abi: CONTRACTS.auctionHouse.abi,
+    functionName: "getHighestBid",
+    args: [namehash],
+  });
+
+  // Determine phase
   useEffect(() => {
-    if (status === "Expired") {
-      // Simulate fetching data from Ethereum
-      const fetchWinningBid = async () => {
-        // Example placeholder — replace with contract call
-        const fakeWinningBid = 2.35; 
-        setWinningBid(fakeWinningBid);
-      };
-      fetchWinningBid();
-    }
-  }, [status]);
+    if (!endTime) return;
+    const now = Math.floor(Date.now() / 1000);
 
-  const handleBid = () => {
-    if (!bidPrice || isNaN(Number(bidPrice)) || Number(bidPrice) <= 0) {
-      setMessage("⚠️ Please enter a valid bid amount.");
-      return;
+    if (finalized) setPhase("ended");
+    else if (now < Number(endTime)) setPhase("commit");
+    else setPhase("reveal");
+  }, [endTime, finalized]);
+
+  // Contracts
+  const { writeContractAsync } = useWriteContract();
+
+  async function handleCommit() {
+    if (!bid || !salt) return setMessage("⚠ Enter a bid and salt.");
+
+    const commitHash = hashBid(name, bid, salt, address!);
+
+    try {
+      await writeContractAsync({
+        address: CONTRACTS.auctionHouse.address,
+        abi: CONTRACTS.auctionHouse.abi,
+        functionName: "commitBid",
+        args: [namehash, commitHash],
+        value: parseEther(bid)
+      });
+      setMessage("✅ Bid committed! DO NOT lose your salt.");
+    } catch {
+      setMessage("❌ Commit failed.");
     }
-    setMessage(`✅ Your bid of ${bidPrice} ETH for ${name} has been submitted!`);
-    setBidPrice("");
-  };
+  }
+
+  async function handleReveal() {
+    try {
+      await writeContractAsync({
+        address: CONTRACTS.auctionHouse.address,
+        abi: CONTRACTS.auctionHouse.abi,
+        functionName: "revealBid",
+        args: [name, parseEther(bid), salt],
+      });
+      setMessage("✅ Reveal submitted!");
+    } catch {
+      setMessage("❌ Reveal failed.");
+    }
+  }
+
+  async function handleFinalize() {
+    try {
+      await writeContractAsync({
+        address: CONTRACTS.auctionHouse.address,
+        abi: CONTRACTS.auctionHouse.abi,
+        functionName: "finalizeAuction",
+        args: [name],
+      });
+      setMessage("✅ Auction finalized! Winner now owns the domain.");
+    } catch {
+      setMessage("❌ Finalize failed.");
+    }
+  }
 
   return (
-    <div className="text-center">
-      <Layout />
+    <div className="max-w-3xl mx-auto p-10">
+      <h1 className="text-3xl font-bold text-center mb-6">{name}.ntu Auction</h1>
 
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8 mt-10">
-        <h1 className="text-3xl font-bold text-sky-700 mb-4">
-          Domain Bidding Page
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Review the domain details and place your bid below.
-        </p>
+      {phase === "commit" && (
+        <>
+          <input value={bid} onChange={e=>setBid(e.target.value)} placeholder="Bid (ETH)" className="input"/>
+          <input value={salt} onChange={e=>setSalt(e.target.value)} placeholder="Secret Salt" className="input"/>
+          <button onClick={handleCommit} className="btn-primary">Commit Bid</button>
+        </>
+      )}
 
-        {/* Domain Info Section */}
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-left mb-8">
-          <p className="text-lg mb-2">
-            <strong>Domain Name:</strong> {name || "N/A"}
-          </p>
-          <p className="text-lg mb-2">
-            <strong>Expiration:</strong> {expiration || "N/A"}
-          </p>
-          <p className="text-lg mb-2">
-            <strong>Status:</strong>{" "}
-            <span
-              className={`${
-                status === "Active" ? "text-green-600" : "text-red-500"
-              } font-semibold`}
-            >
-              {status || "N/A"}
-            </span>
-          </p>
-        </div>
+      {phase === "reveal" && (
+        <>
+          <input value={bid} onChange={e=>setBid(e.target.value)} placeholder="Bid (ETH)" className="input"/>
+          <input value={salt} onChange={e=>setSalt(e.target.value)} placeholder="Secret Salt" className="input"/>
+          <button onClick={handleReveal} className="btn-primary">Reveal Bid</button>
+        </>
+      )}
 
-        {/* Conditional Display */}
-        {status === "Active" ? (
-          <div className="flex flex-col items-center gap-4">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Enter your bid price (ETH)"
-              className="w-full max-w-md border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              value={bidPrice}
-              onChange={(e) => setBidPrice(e.target.value)}
-            />
+      {phase === "ended" && (
+        <>
+          <p>Highest Bid: {highestBid ? (Number(highestBid)/1e18).toFixed(4) : "Loading"} ETH</p>
+          <button onClick={handleFinalize} className="btn-primary">Finalize Auction</button>
+        </>
+      )}
 
-            <button
-              onClick={handleBid}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-8 py-3 rounded-lg transition"
-            >
-              Submit Bid
-            </button>
-          </div>
-        ) : (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
-            <p className="text-lg text-gray-700 mb-2">
-              🏁 <strong>This auction has ended.</strong>
-            </p>
-            {winningBid !== null ? (
-              <p className="text-xl font-semibold text-sky-700">
-                Winning Bid: {winningBid} ETH
-              </p>
-            ) : (
-              <p className="text-gray-500">Fetching winning bid...</p>
-            )}
-          </div>
-        )}
-
-        {/* Result Message */}
-        {message && (
-          <div className="mt-6 text-lg font-medium text-gray-700">{message}</div>
-        )}
-      </div>
+      {message && <p className="text-center mt-4 text-sky-700">{message}</p>}
     </div>
   );
 }

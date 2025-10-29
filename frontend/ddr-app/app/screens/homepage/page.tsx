@@ -35,12 +35,6 @@ export default function HomePage() {
             <p className="text-sm opacity-70">Connect your wallet to begin.</p>
           )}
 
-          {/* <div className="flex justify-center gap-4 flex-wrap pt-6">
-            <ActionButton href="/screens/viewavailabledomainpage" label="Register Domain" />
-            <ActionButton href="/screens/viewregistereddomainpage" label="My Domains" />
-            <ActionButton href="/screens/domainlookuppage" label="Domain Lookup" />
-            <ActionButton href="/screens/viewwalletdetailpage" label="Wallet Details" />
-          </div> */}
 
         </div>
       </div>
