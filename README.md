@@ -44,6 +44,10 @@ npx hardhat compile
 
 # Run tests
 npx hardhat test
+
+# Deployment of contract
+npx hardhat run scripts/deploy.ts --network sepolia
+
 ```
 
 ### Environment Variables
