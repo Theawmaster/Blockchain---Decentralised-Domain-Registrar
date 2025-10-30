@@ -108,9 +108,9 @@ export default function ViewAvailableDomainPage() {
         {/* header */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/screens/homepage")}
             className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2"
+            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back

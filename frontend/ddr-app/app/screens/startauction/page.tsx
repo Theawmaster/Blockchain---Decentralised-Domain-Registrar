@@ -88,7 +88,7 @@ export default function StartAuctionPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/screens/active-auctions")}
             className="px-4 py-2 rounded-lg border border-[var(--border)]
             hover:bg-[var(--foreground)]/10 flex items-center gap-2"
           >

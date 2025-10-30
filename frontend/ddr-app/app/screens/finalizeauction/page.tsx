@@ -36,7 +36,7 @@ function Modal({ open, title, message, onClose }: {
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="opacity-80 whitespace-pre-line">{message}</p>
         <div className="flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white cursor-pointer">
             OK
           </button>
         </div>
@@ -149,7 +149,7 @@ export default function FinalizeAuctionPage() {
 
       <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-8 space-y-8">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2">
+          <button onClick={() => router.push("/screens/active-auctions")} className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2 cursor-pointer">
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <ThemeToggle />
@@ -177,7 +177,7 @@ export default function FinalizeAuctionPage() {
           <button
             onClick={finalizeAuction}
             disabled={!canFinalize || isPending}
-            className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-800 disabled:opacity-40"
+            className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-800 disabled:opacity-40 cursor-pointer transition"
           >
             {isPending ? "Finalizing..." : finalized ? "Already Finalized" : "Finalize Auction"}
           </button>
