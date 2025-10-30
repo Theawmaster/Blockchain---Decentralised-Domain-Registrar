@@ -41,7 +41,7 @@ contract Registry is IRegistry, Ownable, Pausable {
             if (
                 !(c >= 0x61 && c <= 0x7A) && // a–z
                 !(c >= 0x30 && c <= 0x39) && // 0–9
-                !(c == 0x2D)                 // hyphen
+                !(c == 0x2D)
             ) return false;
             if (i > 0 && b[i - 1] == 0x2D && c == 0x2D) return false;
         }

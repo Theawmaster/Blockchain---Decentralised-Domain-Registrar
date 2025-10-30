@@ -178,6 +178,7 @@ export default function ViewAvailableDomainPage() {
                 <th className="px-5 py-3 text-left font-semibold">Domain</th>
               </tr>
             </thead>
+
             <tbody>
               {isLoading ? (
                 <tr>
