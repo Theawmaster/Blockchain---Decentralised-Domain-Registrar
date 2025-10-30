@@ -110,7 +110,7 @@ export default function ViewAvailableDomainPage() {
           <button
             onClick={() => router.push("/screens/homepage")}
             className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
+            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
