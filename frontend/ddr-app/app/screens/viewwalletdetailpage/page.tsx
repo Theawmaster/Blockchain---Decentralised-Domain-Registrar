@@ -36,7 +36,7 @@ export default function ViewWalletDetailPage() {
         {/* Back & Theme */}
         <div className="w-full max-w-3xl flex justify-between items-center mb-6">
         <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/screens/homepage")}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)]
             hover:bg-gray-100 dark:hover:bg-gray-300 transition-colors cursor-pointer"
         >

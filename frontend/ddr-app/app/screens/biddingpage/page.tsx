@@ -12,13 +12,14 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { makeBidHash, randomSalt } from "@/app/lib/hash";
 import { parseEther, keccak256, encodePacked } from "viem";
 import { upsertBid } from "@/app/lib/bids";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ArrowLeft } from "lucide-react";
 
 export default function BiddingPage() {
   const params = useSearchParams();
   const router = useRouter();
 
   const domain = String(params.get("name") || "").trim().toLowerCase();
-
   const { address } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -27,7 +28,6 @@ export default function BiddingPage() {
   const [salt, setSalt] = useState(randomSalt());
   const [msg, setMsg] = useState("");
 
-  // ✅ reservePrice is returned as bigint by wagmi
   const { data: reservePrice } = useReadContract({
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
@@ -46,8 +46,6 @@ export default function BiddingPage() {
 
       const bidWei = parseEther(bidEth);
       const bidHash = makeBidHash(domain, bidWei, salt, address);
-
-      // ✅ ensure reservePrice is bigint
       const deposit = reservePrice as bigint;
 
       await writeContractAsync({
@@ -55,10 +53,9 @@ export default function BiddingPage() {
         abi: CONTRACTS.auctionHouse.abi,
         functionName: "commitBidWithName",
         args: [domain, bidHash],
-        value: deposit, // ✅ correct type, no parseEther needed
+        value: deposit,
       });
 
-      // ✅ Store for reveal page later
       upsertBid(chainId, address, {
         domain,
         bidWei: bidWei.toString(),
@@ -75,35 +72,52 @@ export default function BiddingPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg mx-auto space-y-6">
-      <h1 className="text-xl font-bold">Commit Bid for: {domain}</h1>
+    <div className="flex justify-center pt-16 px-4">
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
 
-      <label className="text-sm opacity-75">Your Bid (ETH)</label>
-      <input
-        type="number"
-        min="0"
-        step="0.001"
-        value={bidEth}
-        onChange={(e) => setBidEth(e.target.value)}
-        className="border p-2 w-full rounded"
-      />
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
+        </div>
 
-      <button
-        onClick={commit}
-        disabled={!address || isPending}
-        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-40 w-full"
-      >
-        {isPending ? "Submitting..." : "Commit Sealed Bid"}
-      </button>
+        <h1 className="text-2xl font-bold text-center">
+          Commit Bid for <span className="text-blue-500">{domain}</span>
+        </h1>
 
-      {msg && <p className="text-sm opacity-75">{msg}</p>}
+        <div className="space-y-4">
+          <label className="text-sm opacity-70">Your Bid (ETH)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={bidEth}
+            onChange={(e) => setBidEth(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
+            bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
+          />
 
-      <button
-        onClick={() => router.back()}
-        className="text-sm text-center opacity-60 w-full"
-      >
-        Back
-      </button>
+          <button
+            onClick={commit}
+            disabled={!address || isPending}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
+            transition disabled:opacity-40"
+          >
+            {isPending ? "Submitting..." : "Commit Sealed Bid"}
+          </button>
+        </div>
+
+        {msg && (
+          <p className="text-center text-sm opacity-80">{msg}</p>
+        )}
+      </div>
     </div>
   );
 }

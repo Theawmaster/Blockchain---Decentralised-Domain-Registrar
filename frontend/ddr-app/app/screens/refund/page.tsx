@@ -7,11 +7,14 @@ import { listBids } from "@/app/lib/bids";
 import { keccak256, encodePacked, formatEther } from "viem";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function RefundPage() {
   const { address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const router = useRouter();
   const { writeContractAsync } = useWriteContract();
 
   const [refunds, setRefunds] = useState<any[]>([]);
@@ -57,6 +60,8 @@ export default function RefundPage() {
       functionName: "withdraw",
       args: [r.namehash],
     });
+
+    toast.success(`Refunded ${formatEther(r.deposit)} ETH`);
     setRefunds((x) => x.filter((i) => i.namehash !== r.namehash));
   }
 
@@ -65,7 +70,7 @@ export default function RefundPage() {
       <div className="max-w-xl w-full rounded-xl border bg-[var(--background)] text-[var(--foreground)] shadow-md p-8 space-y-6">
 
         <div className="flex items-center justify-between">
-          <button onClick={() => history.back()} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-[var(--foreground)]/10">
+          <button onClick={() => router.push("/screens/homepage")} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-[var(--foreground)]/10 cursor-pointer">
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>

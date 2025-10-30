@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 async function main() {
-  console.log("🚀 Starting deployment...");
+  console.log("Starting deployment...");
 
   // --- Deploy Registry ---
   const Registry = await ethers.getContractFactory("Registry");
@@ -18,7 +18,7 @@ async function main() {
   // Reserve price (how much ETH a bidder must put in)
   const RESERVE_PRICE = ethers.parseEther("0.01"); // 0.01 ETH
 
-  // ✅ Timings (seconds)
+  // Timings (seconds)
   const COMMIT_DURATION = 60n * 3n;   // 3 minutes commit phase
   const REVEAL_DURATION = 60n * 3n;   // 3 minutes reveal phase
 
@@ -50,8 +50,8 @@ async function main() {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(deployments, null, 2));
 
-  console.log("📁 Deployment info saved to:", outPath);
-  console.log("🎉 Done!");
+  console.log("Deployment info saved to:", outPath);
+  console.log("Done!");
 }
 
 main().catch((e) => {
