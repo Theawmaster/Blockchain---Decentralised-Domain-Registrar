@@ -101,17 +101,17 @@ export default function ViewRegisteredDomainPage() {
         setResultModal({ ok: true, message: `✅ Resolve updated to ${input}` });
       }
 
-      if (mode === "transfer") {
-        await writeContractAsync({
-          address: CONTRACTS.registry.address,
-          abi: CONTRACTS.registry.abi,
-          functionName: "transferDomain",
-          args: [selected.name, input],
-        });
+      // if (mode === "transfer") {
+      //   await writeContractAsync({
+      //     address: CONTRACTS.registry.address,
+      //     abi: CONTRACTS.registry.abi,
+      //     functionName: "transferDomain",
+      //     args: [selected.name, input],
+      //   });
 
-        setDomains(domains.filter((d) => d.name !== selected.name));
-        setResultModal({ ok: true, message: `✅ Ownership transferred to ${input}` });
-      }
+      //   setDomains(domains.filter((d) => d.name !== selected.name));
+      //   setResultModal({ ok: true, message: `✅ Ownership transferred to ${input}` });
+      // }
 
     } catch (err: any) {
       setResultModal({
@@ -181,12 +181,12 @@ return (
               {hasResolve ? "Already Resolved" : "Set Resolve"}
             </button>
 
-            <button
+            {/* <button
               onClick={() => openModal(d, "transfer")}
               className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm cursor-pointer transition"
             >
               Transfer Owner
-            </button>
+            </button> */}
           </div>
         </div>
       );
