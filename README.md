@@ -77,19 +77,76 @@ Open the app:
 http://localhost:3000
 ```
 
-### Frontend Structure
+### Directory Structure
 
+App runs at:
 ```
-frontend/ddr-app/
- ├─ app/
- │  ├─ screens/                  # Page screens
- │  ├─ layout.tsx                # Root providers + UI shell
- │  └─ globals.css               # Theme system & tokens
- ├─ components/
- │  ├─ AppNav.tsx                # Navigation bar
- │  ├─ ThemeToggle.tsx           # Light/Dark toggle
- │  └─ NetworkSwitcher.tsx       # Chain selector
- ├─ lib/web3/Web3Provider.tsx    # wagmi + chain config
+decentralized-domain-registry/
+│
+├── contracts/
+│   ├── Registry.sol                 # Core domain registry
+│   ├── AuctionHouse.sol             # Commit–reveal auction contract
+│   ├── interfaces/
+│   │   ├── IRegistry.sol
+│   │   └── IAuctionHouse.sol
+│   └── lib/                         # (optional) Shared sol utils
+│
+├── scripts/                         # Hardhat deploy / tasks
+│   └── deploy.ts
+│
+├── test/                            # Hardhat + viem tests
+│   ├── Registry.test.ts
+│   ├── AuctionHouse.test.ts
+│   └── helpers/
+│       └── domain.ts                # hashing, encoding helpers
+│
+├── frontend/
+│   ├── ddr-app/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── globals.css
+│   │   │   └── screens/
+│   │   │       ├── homepage/
+│   │   │       │   └── page.tsx
+│   │   │       ├── registerdomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── viewregistereddomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── sendtodomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── startauction/
+│   │   │       │   └── page.tsx
+│   │   │       └── reveal/
+│   │   │           └── page.tsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── AppNav.tsx
+│   │   │   ├── ThemeToggle.tsx
+│   │   │   ├── NetworkSwitcher.tsx
+│   │   │   └── AuctionCard.tsx
+│   │   │
+│   │   └── lib/
+│   │       └── web3/
+│   │           ├── contract.ts      # ABI + addresses
+│   │           └── Web3Provider.tsx # wagmi config
+│   │
+│   └── public/
+│       └── assets/ (logos/icons)
+│
+├── docs/
+│   ├── README.md
+│   ├── ARCHITECTURE.md              # System + call flow diagrams
+│   ├── THREATMODEL.md               # Attack surface & STRIDE mapping
+│   ├── RUBRIC.md                    # Assessment criteria alignment
+│   ├── DEMO.md                      # 7-minute presentation script
+│   └── DEPLOYMENTS.md               # Contract addresses + block explorers
+│
+└── evidence/                        # Provided during report submission
+    ├── gas-report.txt
+    ├── slither-report.txt
+    ├── coverage-summary.html
+    └── audit-findings.log
+
 ```
 
 ---
