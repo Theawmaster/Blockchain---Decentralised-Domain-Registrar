@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState } from "react";
 import { useReadContract } from "wagmi";
 import { Layout } from "@/app/layout";

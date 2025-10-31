@@ -7,13 +7,11 @@ interface IRegistry {
     /// Events
     /// -----------------------------------------------------------------------
     event NameRegistered(bytes32 indexed namehash, address indexed owner, string name);
-    event ResolveSet(bytes32 indexed namehash, address indexed resolved);
+    event ResolveSet(bytes32 indexed namehash, address resolved);
 
     /// -----------------------------------------------------------------------
     /// Core functions
     /// -----------------------------------------------------------------------
     function register(string calldata name, address owner) external;
-    function registerByHash(bytes32 namehash, address owner) external;
-
     function ownerOf(bytes32 namehash) external view returns (address);
 }

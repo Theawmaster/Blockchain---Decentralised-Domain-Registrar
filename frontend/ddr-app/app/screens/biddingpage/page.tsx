@@ -1,110 +1,121 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { Layout } from "@/app/layout";
+import { useState, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import {
+  useAccount,
+  useWriteContract,
+  useChainId,
+  useReadContract,
+} from "wagmi";
+import { CONTRACTS } from "@/lib/web3/contract";
+import { makeBidHash, randomSalt } from "@/app/lib/hash";
+import { parseEther, keccak256, encodePacked } from "viem";
+import { upsertBid } from "@/app/lib/bids";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ArrowLeft } from "lucide-react";
 
 export default function BiddingPage() {
   const params = useSearchParams();
-  const name = params.get("name");
-  const expiration = params.get("expiration");
-  const status = params.get("status");
+  const router = useRouter();
 
-  const [bidPrice, setBidPrice] = useState("");
-  const [message, setMessage] = useState("");
-  const [winningBid, setWinningBid] = useState<number | null>(null);
+  const domain = String(params.get("name") || "").trim().toLowerCase();
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const { writeContractAsync, isPending } = useWriteContract();
 
-  // Fetch winning bid (placeholder logic — replace with Ethereum contract call)
-  useEffect(() => {
-    if (status === "Expired") {
-      // Simulate fetching data from Ethereum
-      const fetchWinningBid = async () => {
-        // Example placeholder — replace with contract call
-        const fakeWinningBid = 2.35; 
-        setWinningBid(fakeWinningBid);
-      };
-      fetchWinningBid();
+  const [bidEth, setBidEth] = useState("0.05");
+  const [salt, setSalt] = useState(randomSalt());
+  const [msg, setMsg] = useState("");
+
+  const { data: reservePrice } = useReadContract({
+    address: CONTRACTS.auctionHouse.address,
+    abi: CONTRACTS.auctionHouse.abi,
+    functionName: "reservePrice",
+  });
+
+  const namehash = useMemo(
+    () => keccak256(encodePacked(["string"], [domain])) as `0x${string}`,
+    [domain]
+  );
+
+  async function commit() {
+    try {
+      if (!address) return setMsg("Please connect wallet first.");
+      if (!reservePrice) return setMsg("Still loading reserve price…");
+
+      const bidWei = parseEther(bidEth);
+      const bidHash = makeBidHash(domain, bidWei, salt, address);
+      const deposit = reservePrice as bigint;
+
+      await writeContractAsync({
+        address: CONTRACTS.auctionHouse.address,
+        abi: CONTRACTS.auctionHouse.abi,
+        functionName: "commitBidWithName",
+        args: [domain, bidHash],
+        value: deposit,
+      });
+
+      upsertBid(chainId, address, {
+        domain,
+        bidWei: bidWei.toString(),
+        salt,
+        revealed: false,
+        ts: Date.now(),
+      });
+
+      setMsg("✅ Bid committed. Reveal during the reveal phase.");
+      setSalt(randomSalt());
+    } catch (err: any) {
+      setMsg(err?.shortMessage || err?.message || "Commit failed.");
     }
-  }, [status]);
-
-  const handleBid = () => {
-    if (!bidPrice || isNaN(Number(bidPrice)) || Number(bidPrice) <= 0) {
-      setMessage("⚠️ Please enter a valid bid amount.");
-      return;
-    }
-    setMessage(`✅ Your bid of ${bidPrice} ETH for ${name} has been submitted!`);
-    setBidPrice("");
-  };
+  }
 
   return (
-    <div className="text-center">
-      <Layout />
+    <div className="flex justify-center pt-16 px-4">
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
 
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8 mt-10">
-        <h1 className="text-3xl font-bold text-sky-700 mb-4">
-          Domain Bidding Page
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Review the domain details and place your bid below.
-        </p>
-
-        {/* Domain Info Section */}
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-left mb-8">
-          <p className="text-lg mb-2">
-            <strong>Domain Name:</strong> {name || "N/A"}
-          </p>
-          <p className="text-lg mb-2">
-            <strong>Expiration:</strong> {expiration || "N/A"}
-          </p>
-          <p className="text-lg mb-2">
-            <strong>Status:</strong>{" "}
-            <span
-              className={`${
-                status === "Active" ? "text-green-600" : "text-red-500"
-              } font-semibold`}
-            >
-              {status || "N/A"}
-            </span>
-          </p>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
         </div>
 
-        {/* Conditional Display */}
-        {status === "Active" ? (
-          <div className="flex flex-col items-center gap-4">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Enter your bid price (ETH)"
-              className="w-full max-w-md border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              value={bidPrice}
-              onChange={(e) => setBidPrice(e.target.value)}
-            />
+        <h1 className="text-2xl font-bold text-center">
+          Commit Bid for <span className="text-blue-500">{domain}</span>
+        </h1>
 
-            <button
-              onClick={handleBid}
-              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold px-8 py-3 rounded-lg transition"
-            >
-              Submit Bid
-            </button>
-          </div>
-        ) : (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
-            <p className="text-lg text-gray-700 mb-2">
-              🏁 <strong>This auction has ended.</strong>
-            </p>
-            {winningBid !== null ? (
-              <p className="text-xl font-semibold text-sky-700">
-                Winning Bid: {winningBid} ETH
-              </p>
-            ) : (
-              <p className="text-gray-500">Fetching winning bid...</p>
-            )}
-          </div>
-        )}
+        <div className="space-y-4">
+          <label className="text-sm opacity-70">Your Bid (ETH)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={bidEth}
+            onChange={(e) => setBidEth(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
+            bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
+          />
 
-        {/* Result Message */}
-        {message && (
-          <div className="mt-6 text-lg font-medium text-gray-700">{message}</div>
+          <button
+            onClick={commit}
+            disabled={!address || isPending}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
+            transition disabled:opacity-40"
+          >
+            {isPending ? "Submitting..." : "Commit Sealed Bid"}
+          </button>
+        </div>
+
+        {msg && (
+          <p className="text-center text-sm opacity-80">{msg}</p>
         )}
       </div>
     </div>
