@@ -79,6 +79,7 @@ http://localhost:3000
 
 ### Directory Structure
 
+App runs at:
 ```
 decentralized-domain-registry/
 │
