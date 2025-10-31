@@ -7,13 +7,10 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-/// -----------------------------------------------------------------------
-///                              Custom Errors
-/// -----------------------------------------------------------------------
 error EmptyBidHash();
 error DepositBelowReserve();
 error AuctionAlreadyCommitted();
-error AuctionClosed();              // commit closed
+error AuctionClosed();
 error AuctionNotStarted();
 error CommitPhaseNotOpen();
 error RevealPhaseNotOpen();
@@ -27,59 +24,53 @@ error WinnerCannotWithdraw();
 error NothingToWithdraw();
 error WithdrawFailed();
 error NameAlreadyRegisteredOnRegistry();
+error InvalidDomainSuffix(); // must end with .ntu
 
-/// -----------------------------------------------------------------------
 /// @title AuctionHouse
 /// @notice Blind commit–reveal auction for `.ntu` domains.
-/// @dev Phases: commit → reveal → finalize. Funds use pull pattern.
-/// -----------------------------------------------------------------------
 contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
-    // -------------------------------------------------------------------
-    // Storage Layout
-    // -------------------------------------------------------------------
-    // namehash → bidder → commit / time / deposit / revealed bid
+    // --------------------------------- Storage ---------------------------------
+
+    // namehash -> bidder -> data
     mapping(bytes32 => mapping(address => bytes32)) private _commits;
     mapping(bytes32 => mapping(address => uint256)) private _commitTime;
     mapping(bytes32 => mapping(address => uint256)) private _deposits;
     mapping(bytes32 => mapping(address => uint256)) private _reveals;
 
-    // namehash → phase windows
-    mapping(bytes32 => uint256) private _commitEnd;  // commit cutoff
-    mapping(bytes32 => uint256) private _revealEnd;  // reveal cutoff
+    // namehash -> phase windows
+    mapping(bytes32 => uint256) private _commitEnd;
+    mapping(bytes32 => uint256) private _revealEnd;
 
-    // namehash → leading state
+    // namehash -> leader
     mapping(bytes32 => uint256) private _highestBid;
     mapping(bytes32 => address) private _highestBidder;
 
-    // namehash → status
+    // namehash -> status
     mapping(bytes32 => bool) private _finalized;
 
-    // optional expiry tracking for the won domain (front-end friendly)
+    // expiry helper
     mapping(bytes32 => uint256) public expiration;
 
-    // economics
-    uint256 private _proceeds;               // winner deposits accumulated
-    address public immutable beneficiary;    // treasury
-    IRegistry public immutable registry;     // Registry
-    uint256 public immutable reservePrice;   // min deposit to bid
+    // active auctions set
+    bytes32[] private _activeAuctions;
+    mapping(bytes32 => bool) private _isActive;
+
+    // NEW: persist domain string so UI can render names during auction
+    mapping(bytes32 => string) private _domainOf;
+
+    // economics / params
+    uint256 private _proceeds;
+    address public immutable beneficiary;
+    IRegistry public immutable registry;
+    uint256 public immutable reservePrice;   // wei
     uint256 public immutable commitDuration; // seconds
     uint256 public immutable revealDuration; // seconds
-    uint256 public immutable defaultExpiry;  // seconds after finalize
+    uint256 public immutable defaultExpiry;  // seconds
 
-    // -------------------------------------------------------------------
-    // Events
-    // -------------------------------------------------------------------
+    // events
     event AuctionStarted(bytes32 indexed namehash, uint256 commitEnd, uint256 revealEnd);
     event ProceedsSwept(address indexed to, uint256 amount);
 
-    // -------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------
-    /// @param registry_ Address of the domain registry contract.
-    /// @param reservePrice_ Minimum deposit (in wei) to participate.
-    /// @param commitDuration_ Commit window in seconds.
-    /// @param revealDuration_ Reveal window in seconds (starts after commit).
-    /// @param defaultExpiry_ Default domain expiry in seconds (UI convenience).
     constructor(
         address registry_,
         uint256 reservePrice_,
@@ -87,7 +78,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         uint256 revealDuration_,
         uint256 defaultExpiry_
     ) Ownable(msg.sender) {
-        require(registry_ != address(0), "registry addr required");
+        require(registry_ != address(0), "registry required");
         require(commitDuration_ > 0 && revealDuration_ > 0, "durations > 0");
         registry = IRegistry(registry_);
         reservePrice = reservePrice_;
@@ -97,39 +88,54 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         beneficiary = msg.sender;
     }
 
-    // -------------------------------------------------------------------
-    // Commit Phase
-    // -------------------------------------------------------------------
-    /// @notice Commit sealed bid: hash = keccak256(abi.encodePacked(name, bid, salt, bidder))
-    /// @dev On first commit for a name, phase windows are created.
-    function commitBid(bytes32 namehash, bytes32 bidHash)
-        external
-        payable
-        nonReentrant
-        override
-        whenNotPaused
-    {
-        if (bidHash == bytes32(0)) revert EmptyBidHash();
-        if (msg.value < reservePrice) revert DepositBelowReserve();
+    // ------------------------------ Internal utils -----------------------------
 
-        // Ensure the domain isn't already registered
-        if (registry.ownerOf(namehash) != address(0)) {
-            revert NameAlreadyRegisteredOnRegistry();
+    function _endsWithNTU(string memory name) internal pure returns (bool) {
+        bytes memory s = bytes(name);
+        bytes memory tld = bytes(".ntu");
+        if (s.length < tld.length) return false;
+        for (uint256 i = 0; i < tld.length; i++) {
+            if (s[s.length - tld.length + i] != tld[i]) return false;
         }
+        return true;
+    }
 
-        // Lazily initialize auction windows on first commit
-        uint256 cEnd = _commitEnd[namehash];
-        if (cEnd == 0) {
-            cEnd = block.timestamp + commitDuration;
+    function _initWindows(bytes32 namehash) internal {
+        if (_commitEnd[namehash] == 0) {
+            uint256 cEnd = block.timestamp + commitDuration;
             _commitEnd[namehash] = cEnd;
             _revealEnd[namehash] = cEnd + revealDuration;
+
+            if (!_isActive[namehash]) {
+                _isActive[namehash] = true;
+                _activeAuctions.push(namehash);
+            }
             emit AuctionStarted(namehash, _commitEnd[namehash], _revealEnd[namehash]);
         }
+    }
 
-        // Only allow commits during commit window
+    function _deactivate(bytes32 namehash) internal {
+        if (_isActive[namehash]) {
+            _isActive[namehash] = false;
+            uint256 n = _activeAuctions.length;
+            for (uint256 i; i < n; i++) {
+                if (_activeAuctions[i] == namehash) {
+                    if (i != n - 1) _activeAuctions[i] = _activeAuctions[n - 1];
+                    _activeAuctions.pop();
+                    break;
+                }
+            }
+        }
+    }
+
+    // Single internal commit entry used by both public commit fns (avoids reentrancy issues)
+    function _commit(bytes32 namehash, bytes32 bidHash) internal {
+        if (bidHash == bytes32(0)) revert EmptyBidHash();
+        if (msg.value < reservePrice) revert DepositBelowReserve();
+        if (registry.ownerOf(namehash) != address(0)) revert NameAlreadyRegisteredOnRegistry();
+
+        _initWindows(namehash);
         if (block.timestamp >= _commitEnd[namehash]) revert AuctionClosed();
-
-        // One commit per bidder per name
         if (_commits[namehash][msg.sender] != bytes32(0)) revert AuctionAlreadyCommitted();
 
         _commits[namehash][msg.sender] = bidHash;
@@ -139,25 +145,61 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit BidCommitted(namehash, msg.sender);
     }
 
-    // -------------------------------------------------------------------
-    // Reveal Phase
-    // -------------------------------------------------------------------
+    // --------------------------------- Starters --------------------------------
+
+    /// @notice Optional: proactively open a window for a domain.
+    function startAuction(string calldata name) external whenNotPaused {
+        if (!_endsWithNTU(name)) revert InvalidDomainSuffix();
+        bytes32 namehash = keccak256(abi.encodePacked(name));
+        if (registry.ownerOf(namehash) != address(0)) revert NameAlreadyRegisteredOnRegistry();
+        if (bytes(_domainOf[namehash]).length == 0) _domainOf[namehash] = name; // store human name
+        _initWindows(namehash);
+    }
+
+    // --------------------------------- Commit ----------------------------------
+
+    /// @notice Commit sealed bid with precomputed hash: keccak256(abi.encodePacked(name, bid, salt, bidder))
+    function commitBid(bytes32 namehash, bytes32 bidHash)
+        external
+        payable
+        nonReentrant
+        override
+        whenNotPaused
+    {
+        _commit(namehash, bidHash);
+    }
+
+    /// @notice Commit sealed bid using the domain string (validates `.ntu` on-chain).
+    function commitBidWithName(string calldata name, bytes32 bidHash)
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+    {
+        if (!_endsWithNTU(name)) revert InvalidDomainSuffix();
+        bytes32 namehash = keccak256(abi.encodePacked(name));
+        if (bytes(_domainOf[namehash]).length == 0) _domainOf[namehash] = name; // store once
+        _commit(namehash, bidHash);
+    }
+
+    // --------------------------------- Reveal ----------------------------------
+
     function revealBid(
         string calldata name,
         uint256 bidAmount,
         bytes32 salt
     ) external override nonReentrant whenNotPaused {
+        if (!_endsWithNTU(name)) revert InvalidDomainSuffix();
         bytes32 namehash = keccak256(abi.encodePacked(name));
-        bytes32 commitHash = _commits[namehash][msg.sender];
 
+        bytes32 commitHash = _commits[namehash][msg.sender];
         if (commitHash == bytes32(0)) revert NoCommitFound();
 
-        // must be reveal window: [commitEnd, revealEnd]
         if (block.timestamp < _commitEnd[namehash]) revert RevealPhaseNotOpen();
         if (block.timestamp > _revealEnd[namehash]) revert RevealPeriodEnded();
-
         if (_reveals[namehash][msg.sender] != 0) revert AlreadyRevealed();
 
+        // Must match the front-end/off-chain formula exactly
         bytes32 computed = keccak256(abi.encodePacked(name, bidAmount, salt, msg.sender));
         if (computed != commitHash) revert InvalidBidReveal();
 
@@ -171,15 +213,15 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit BidRevealed(namehash, msg.sender, bidAmount);
     }
 
-    // -------------------------------------------------------------------
-    // Finalization
-    // -------------------------------------------------------------------
+    // ------------------------------- Finalization ------------------------------
+
     function finalizeAuction(string calldata name)
         external
         override
         nonReentrant
         whenNotPaused
     {
+        if (!_endsWithNTU(name)) revert InvalidDomainSuffix();
         bytes32 namehash = keccak256(abi.encodePacked(name));
 
         uint256 rEnd = _revealEnd[namehash];
@@ -193,29 +235,28 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         uint256 winBid = _highestBid[namehash];
 
         if (winner != address(0)) {
-            // register the domain to the winner (uses string name, not hash)
+            // Ensure domain string is recorded for UIs; register FULL domain (e.g., "ivan.ntu")
+            if (bytes(_domainOf[namehash]).length == 0) _domainOf[namehash] = name;
             registry.register(name, winner);
 
-            // capture the winner's deposit into proceeds
+            // winner deposit -> proceeds
             uint256 winnerDeposit = _deposits[namehash][winner];
             if (winnerDeposit > 0) {
                 _deposits[namehash][winner] = 0;
                 _proceeds += winnerDeposit;
             }
 
-            // set optional expiry for UI
             expiration[namehash] = block.timestamp + defaultExpiry;
         }
 
+        _deactivate(namehash);
         emit AuctionFinalized(namehash, winner, winBid);
     }
 
-    // -------------------------------------------------------------------
-    // Refunds (losers only)
-    // -------------------------------------------------------------------
+    // --------------------------------- Refunds ---------------------------------
+
     function withdraw(bytes32 namehash) external nonReentrant whenNotPaused {
         if (!_finalized[namehash]) revert AuctionNotEnded();
-
         address winner = _highestBidder[namehash];
         if (msg.sender == winner) revert WinnerCannotWithdraw();
 
@@ -223,20 +264,16 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         if (amount == 0) revert NothingToWithdraw();
 
         _deposits[namehash][msg.sender] = 0;
-
         (bool ok, ) = payable(msg.sender).call{value: amount}("");
         if (!ok) revert WithdrawFailed();
-
         emit RefundIssued(namehash, msg.sender, amount);
     }
 
-    // -------------------------------------------------------------------
-    // Admin / Treasury
-    // -------------------------------------------------------------------
+    // --------------------------------- Admin -----------------------------------
+
     function pause() external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
 
-    /// @notice Sweep accumulated proceeds to beneficiary
     function sweepProceeds() external nonReentrant onlyOwner {
         uint256 amt = _proceeds;
         _proceeds = 0;
@@ -245,9 +282,8 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit ProceedsSwept(beneficiary, amt);
     }
 
-    // -------------------------------------------------------------------
-    // Views
-    // -------------------------------------------------------------------
+    // ---------------------------------- Views ----------------------------------
+
     function commitEnd(bytes32 namehash) external view returns (uint256) { return _commitEnd[namehash]; }
     function revealEnd(bytes32 namehash) external view returns (uint256) { return _revealEnd[namehash]; }
     function getCommit(bytes32 namehash, address bidder) external view returns (bytes32) { return _commits[namehash][bidder]; }
@@ -258,13 +294,50 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     function isFinalized(bytes32 namehash) external view returns (bool) { return _finalized[namehash]; }
     function proceeds() external view returns (uint256) { return _proceeds; }
 
-    // helpful UI predicate
-    function phase(bytes32 namehash) external view returns (string memory) {
-        if (_commitEnd[namehash] == 0) return "not-started";
-        if (block.timestamp < _commitEnd[namehash]) return "commit";
-        if (block.timestamp <= _revealEnd[namehash]) return "reveal";
-        if (!_finalized[namehash]) return "await-finalize";
-        return "finalized";
+    /// @notice Remaining seconds for commit (0 if none/ended)
+    function commitSecondsLeft(bytes32 namehash) external view returns (uint256) {
+        uint256 c = _commitEnd[namehash];
+        if (c == 0 || block.timestamp >= c) return 0;
+        return c - block.timestamp;
+    }
+
+    /// @notice Remaining seconds for reveal (0 if none/ended)
+    function revealSecondsLeft(bytes32 namehash) external view returns (uint256) {
+        uint256 r = _revealEnd[namehash];
+        if (r == 0 || block.timestamp >= r) return 0;
+        if (block.timestamp < _commitEnd[namehash]) return _revealEnd[namehash] - _commitEnd[namehash];
+        return r - block.timestamp;
+    }
+
+    /// @notice Active auction hashes
+    function getActiveAuctions() external view returns (bytes32[] memory) {
+        return _activeAuctions;
+    }
+
+    /// @notice NEW: get the domain string during auction
+    function domainOf(bytes32 namehash) external view returns (string memory) {
+        return _domainOf[namehash];
+    }
+
+    /// @notice NEW: convenience bundle for UIs
+    function getAuctionInfo(bytes32 namehash)
+        external
+        view
+        returns (
+            string memory domain,
+            uint256 commitEnd_,
+            uint256 revealEnd_,
+            bool finalized,
+            address highestBidder_,
+            uint256 highestBid_
+        )
+    {
+        domain = _domainOf[namehash];
+        commitEnd_ = _commitEnd[namehash];
+        revealEnd_ = _revealEnd[namehash];
+        finalized = _finalized[namehash];
+        highestBidder_ = _highestBidder[namehash];
+        highestBid_ = _highestBid[namehash];
     }
 
     receive() external payable {}

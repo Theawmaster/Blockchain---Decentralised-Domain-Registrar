@@ -3,21 +3,29 @@ import fs from "fs";
 import path from "path";
 
 async function main() {
-  console.log("🚀 Starting deployment...");
+  console.log("Starting deployment...");
 
+  // --- Deploy Registry ---
   const Registry = await ethers.getContractFactory("Registry");
   const registry = await Registry.deploy();
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
   console.log("✅ Registry deployed at:", registryAddress);
 
+  // --- Deploy AuctionHouse ---
   const AuctionHouse = await ethers.getContractFactory("AuctionHouse");
 
-  const RESERVE_PRICE = ethers.parseEther("0.01"); // 0.01 ETH deposit
-  const COMMIT_DURATION = 60n * 5n;                // 5 minutes to commit
-  const REVEAL_DURATION = 60n * 5n;                // 5 minutes to reveal
-  const DEFAULT_EXPIRY = 365n * 24n * 60n * 60n;   // 1 year expiry
+  // Reserve price (how much ETH a bidder must put in)
+  const RESERVE_PRICE = ethers.parseEther("0.01"); // 0.01 ETH
 
+  // Timings (seconds)
+  const COMMIT_DURATION = 60n * 3n;   // 3 minutes commit phase
+  const REVEAL_DURATION = 60n * 3n;   // 3 minutes reveal phase
+
+  // Domain ownership expiry (example: 1 year)
+  const DEFAULT_EXPIRY = 365n * 24n * 60n * 60n; // 1 year
+
+  // Deploy AuctionHouse
   const auction = await AuctionHouse.deploy(
     registryAddress,
     RESERVE_PRICE,
@@ -30,6 +38,7 @@ async function main() {
   const auctionAddress = await auction.getAddress();
   console.log("✅ AuctionHouse deployed at:", auctionAddress);
 
+  // --- Save Deployment Metadata ---
   const deployments = {
     Registry: registryAddress,
     AuctionHouse: auctionAddress,
@@ -41,7 +50,8 @@ async function main() {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(deployments, null, 2));
 
-  console.log("📁 Deployment info saved to:", outPath);
+  console.log("Deployment info saved to:", outPath);
+  console.log("Done!");
 }
 
 main().catch((e) => {

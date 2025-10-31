@@ -1,142 +1,183 @@
 # Decentralized Domain Registry (DDR) — Full Stack
 
-A **blockchain-based decentralized domain registrar** that allows users to register, manage, transfer, and lookup Web3-native domain names.  
-The system is designed to be **censorship-resistant, self-sovereign, and transparent**, with ownership stored immutably on-chain.
+A **self-sovereign Web3 domain system** that empowers users to **claim digital identity**, **transfer ownership trustlessly**, and **resolve names to wallets** on-chain.  
+Built to be **transparent**, **tamper-resistant**, and **user-first**, DDR merges the simplicity of Web2 naming with the integrity of decentralized infrastructure.
 
 ---
 
-## Core Features
+## Core Capabilities
 
 | Feature | Status | Description |
 |--------|--------|-------------|
-| Domain Registration | ✅ | Users can register unique `.ntu`-style domains. |
-| Domain Lookup | ✅ | Resolve domain → wallet or metadata. |
-| View Owned Domains | ✅ | Display domains linked to the connected wallet. |
-| Wallet Dashboard | ✅ | View chain, balance, and account details. |
-| Light/Dark Theme Toggle | ✅ | LocalStorage-persisted UI theme. |
-| Network Switcher | ✅ | Switch between Ethereum / Sepolia networks. |
-| Commit–Reveal Bidding | 🏗 In Progress | Fair sealed-bid auctions for high-value names. |
+| **Domain Registration** | ✅ | Register `.ntu`-style human-readable domains secured on-chain. |
+| **Resolve to Wallet** | ✅ | Map a domain → Ethereum wallet instantly. |
+| **Owned Domain Dashboard** | ✅ | View and manage names owned by the connected wallet. |
+| **Transfer Ownership** | ✅ | Domain transfers are secure, final, and blockchain-verified. |
+| **Commit–Reveal Auctions** | ✅ | Anti-sniping, fair bidding mechanism for contested names. |
+| **Theme System** | ✅ | Fully responsive UI with light/dark mode persistence. |
+| **Network Switching** | ✅ | Seamless switch between Ethereum & Sepolia Testnet. |
 
 ---
 
-## Tech Stack Overview
+## System Architecture
 
 | Layer | Technology |
 |------|------------|
 | Smart Contracts | Solidity + OpenZeppelin |
-| Local Blockchain / Deployment | Hardhat (TypeScript) |
-| Wallet Integration | wagmi + viem + MetaMask |
-| Frontend UI | Next.js (App Router) + Tailwind CSS |
+| Local Dev / Deployment | Hardhat (TypeScript) |
+| Blockchain Communication | viem + wagmi |
+| Wallet Integration | MetaMask / WalletConnect (wagmi-hooks) |
+| Frontend UI | Next.js (App Router) + TailwindCSS |
+| Animations | (optional) Framer Motion |
 | Icons | lucide-react |
-| Animations (optional) | Framer Motion |
 
 ---
 
-## Backend Installation (Smart Contracts)
+## Contract Deployment & Backend Setup
 
 ```bash
+# Clone repository
 git clone https://github.com/<your-repository>/Decentralised-Domain-Registrar.git
 cd decentralized-domain-registry
+
 npm install
 
-# Compile contracts
+# Compile Smart Contracts
 npx hardhat compile
 
-# Run tests
+# Run Tests
 npx hardhat test
 
-# Deployment of contract
+# Deploy to Sepolia
 npx hardhat run scripts/deploy.ts --network sepolia
-
 ```
 
 ### Environment Variables
-Create `.env`:
+
+Create `.env` file:
+
 ```
-SEPOLIA_RPC_URL=<Infura or Alchemy RPC URL>
-PRIVATE_KEY=<Wallet private key>
-ETHERSCAN_API_KEY=<optional>
+SEPOLIA_RPC_URL=<Infura or Alchemy Endpoint>
+PRIVATE_KEY=<Your Wallet Private Key>
+ETHERSCAN_API_KEY=<optional for verification>
 ```
 
 ---
 
-## Frontend Setup (Next.js)
+## Frontend Setup
 
-```
+```bash
 cd frontend/ddr-app
 npm install
 npm run dev
 ```
 
-App runs at:
+Open the app:
 ```
 http://localhost:3000
 ```
 
----
-
-## Frontend Architecture
+### Directory Structure
 
 App runs at:
 ```
-frontend/ddr-app/
- ├── app/
- │   ├── screens/               # UI screens (pages)
- │   │   ├── authpage/
- │   │   ├── homepage/
- │   │   ├── viewavailabledomainpage/
- │   │   ├── viewregistereddomainpage/
- │   │   ├── domainlookuppage/
- │   │   └── viewwalletdetailpage/
- │   ├── layout.tsx             # Root layout w/ providers
- │   └── globals.css            # Theme variables
- ├── components/
- │   ├── AppNav.tsx             # Top navigation bar
- │   ├── ThemeToggle.tsx        # Light/Dark mode switch
- │   └── NetworkSwitcher.tsx    # Chain switching dropdown
- ├── lib/web3/Web3Provider.tsx  # wagmi + chains config
- └── ...
+decentralized-domain-registry/
+│
+├── contracts/
+│   ├── Registry.sol                 # Core domain registry
+│   ├── AuctionHouse.sol             # Commit–reveal auction contract
+│   ├── interfaces/
+│   │   ├── IRegistry.sol
+│   │   └── IAuctionHouse.sol
+│   └── lib/                         # (optional) Shared sol utils
+│
+├── scripts/                         # Hardhat deploy / tasks
+│   └── deploy.ts
+│
+├── test/                            # Hardhat + viem tests
+│   ├── Registry.test.ts
+│   ├── AuctionHouse.test.ts
+│   └── helpers/
+│       └── domain.ts                # hashing, encoding helpers
+│
+├── frontend/
+│   ├── ddr-app/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── globals.css
+│   │   │   └── screens/
+│   │   │       ├── homepage/
+│   │   │       │   └── page.tsx
+│   │   │       ├── registerdomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── viewregistereddomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── sendtodomain/
+│   │   │       │   └── page.tsx
+│   │   │       ├── startauction/
+│   │   │       │   └── page.tsx
+│   │   │       └── reveal/
+│   │   │           └── page.tsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── AppNav.tsx
+│   │   │   ├── ThemeToggle.tsx
+│   │   │   ├── NetworkSwitcher.tsx
+│   │   │   └── AuctionCard.tsx
+│   │   │
+│   │   └── lib/
+│   │       └── web3/
+│   │           ├── contract.ts      # ABI + addresses
+│   │           └── Web3Provider.tsx # wagmi config
+│   │
+│   └── public/
+│       └── assets/ (logos/icons)
+│
+├── docs/
+│   ├── README.md
+│   ├── ARCHITECTURE.md              # System + call flow diagrams
+│   ├── THREATMODEL.md               # Attack surface & STRIDE mapping
+│   ├── RUBRIC.md                    # Assessment criteria alignment
+│   ├── DEMO.md                      # 7-minute presentation script
+│   └── DEPLOYMENTS.md               # Contract addresses + block explorers
+│
+└── evidence/                        # Provided during report submission
+    ├── gas-report.txt
+    ├── slither-report.txt
+    ├── coverage-summary.html
+    └── audit-findings.log
+
 ```
 
 ---
 
-## Theme System
+## Theme & UX Philosophy
 
-Themes use CSS variables and persist in localStorage:
+The interface is designed around **clarity and self-agency**:
 
-- `ThemeToggle.tsx` switches light/dark
-- `globals.css` defines color tokens
+- Light/Dark mode stored in `localStorage`
+- Accessible color contrast and focus states
+- Minimal screens → intuitive navigation
 
-No tailwind.config customization required.
-
----
-
-## Network Switching
-
-`NetworkSwitcher.tsx` lets the user switch between supported chains:
-
-```ts
-import { useSwitchChain } from "wagmi";
-const { chains, switchChain } = useSwitchChain();
-```
-
-Chains are defined centrally in `Web3Provider.tsx`.
+> Your identity should feel like **yours**, without needing permission.
 
 ---
 
 ## Contributors
 
-| Role | Name |
-|------|------|
-| Smart Contract & Protocol Design | Alvin |
-| Frontend & UX Engineering | Ivan |
-| Testing & Documentation | Fernando |
+| Role | Contributor |
+|------|-------------|
+| Protocol & Contract Design | Alvin |
+| Frontend Engineering & UX | Ivan |
+| QA, Testing & Deployment Support | Fernando |
 
 ---
 
 ## License
 
-This project is licensed under **GPL-3.0**.  
-You are free to use, modify, and distribute under the same terms.
+Distributed under the **GPL-3.0 License**.  
+Any derivative must remain open-source — in the spirit of public transparency.
 
-> *This project demonstrates how decentralized naming can enhance Web3 identity ownership, transparency, and sovereignty.*
+---
+
+

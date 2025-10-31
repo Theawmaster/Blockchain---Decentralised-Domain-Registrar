@@ -1,137 +1,123 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useWriteContract,
+  useChainId,
+  useReadContract,
+} from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
-import { hashBid } from "@/lib/web3/auctionUtils";
-import { keccak256, toBytes, parseEther } from "viem";
+import { makeBidHash, randomSalt } from "@/app/lib/hash";
+import { parseEther, keccak256, encodePacked } from "viem";
+import { upsertBid } from "@/app/lib/bids";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ArrowLeft } from "lucide-react";
 
 export default function BiddingPage() {
   const params = useSearchParams();
-  const name = params.get("name") as string;
-  const namehash = keccak256(toBytes(name)); // ✅ CONVERT TO BYTES32
-
   const router = useRouter();
+
+  const domain = String(params.get("name") || "").trim().toLowerCase();
   const { address } = useAccount();
+  const chainId = useChainId();
+  const { writeContractAsync, isPending } = useWriteContract();
 
-  const [phase, setPhase] = useState<"commit"|"reveal"|"ended">("commit");
-  const [bid, setBid] = useState("");
-  const [salt, setSalt] = useState("");
-  const [message, setMessage] = useState("");
+  const [bidEth, setBidEth] = useState("0.05");
+  const [salt, setSalt] = useState(randomSalt());
+  const [msg, setMsg] = useState("");
 
-  // Load auction end time
-  const { data: endTime } = useReadContract({
+  const { data: reservePrice } = useReadContract({
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
-    functionName: "auctionEnd",
-    args: [namehash],
+    functionName: "reservePrice",
   });
 
-  // Load finalized state
-  const { data: finalized } = useReadContract({
-    address: CONTRACTS.auctionHouse.address,
-    abi: CONTRACTS.auctionHouse.abi,
-    functionName: "isFinalized",
-    args: [namehash],
-  });
+  const namehash = useMemo(
+    () => keccak256(encodePacked(["string"], [domain])) as `0x${string}`,
+    [domain]
+  );
 
-  // Highest Bid
-  const { data: highestBid } = useReadContract({
-    address: CONTRACTS.auctionHouse.address,
-    abi: CONTRACTS.auctionHouse.abi,
-    functionName: "getHighestBid",
-    args: [namehash],
-  });
-
-  // Determine phase
-  useEffect(() => {
-    if (!endTime) return;
-    const now = Math.floor(Date.now() / 1000);
-
-    if (finalized) setPhase("ended");
-    else if (now < Number(endTime)) setPhase("commit");
-    else setPhase("reveal");
-  }, [endTime, finalized]);
-
-  // Contracts
-  const { writeContractAsync } = useWriteContract();
-
-  async function handleCommit() {
-    if (!bid || !salt) return setMessage("⚠ Enter a bid and salt.");
-
-    const commitHash = hashBid(name, bid, salt, address!);
-
+  async function commit() {
     try {
+      if (!address) return setMsg("Please connect wallet first.");
+      if (!reservePrice) return setMsg("Still loading reserve price…");
+
+      const bidWei = parseEther(bidEth);
+      const bidHash = makeBidHash(domain, bidWei, salt, address);
+      const deposit = reservePrice as bigint;
+
       await writeContractAsync({
         address: CONTRACTS.auctionHouse.address,
         abi: CONTRACTS.auctionHouse.abi,
-        functionName: "commitBid",
-        args: [namehash, commitHash],
-        value: parseEther(bid)
+        functionName: "commitBidWithName",
+        args: [domain, bidHash],
+        value: deposit,
       });
-      setMessage("✅ Bid committed! DO NOT lose your salt.");
-    } catch {
-      setMessage("❌ Commit failed.");
-    }
-  }
 
-  async function handleReveal() {
-    try {
-      await writeContractAsync({
-        address: CONTRACTS.auctionHouse.address,
-        abi: CONTRACTS.auctionHouse.abi,
-        functionName: "revealBid",
-        args: [name, parseEther(bid), salt],
+      upsertBid(chainId, address, {
+        domain,
+        bidWei: bidWei.toString(),
+        salt,
+        revealed: false,
+        ts: Date.now(),
       });
-      setMessage("✅ Reveal submitted!");
-    } catch {
-      setMessage("❌ Reveal failed.");
-    }
-  }
 
-  async function handleFinalize() {
-    try {
-      await writeContractAsync({
-        address: CONTRACTS.auctionHouse.address,
-        abi: CONTRACTS.auctionHouse.abi,
-        functionName: "finalizeAuction",
-        args: [name],
-      });
-      setMessage("✅ Auction finalized! Winner now owns the domain.");
-    } catch {
-      setMessage("❌ Finalize failed.");
+      setMsg("✅ Bid committed. Reveal during the reveal phase.");
+      setSalt(randomSalt());
+    } catch (err: any) {
+      setMsg(err?.shortMessage || err?.message || "Commit failed.");
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-10">
-      <h1 className="text-3xl font-bold text-center mb-6">{name}.ntu Auction</h1>
+    <div className="flex justify-center pt-16 px-4">
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
 
-      {phase === "commit" && (
-        <>
-          <input value={bid} onChange={e=>setBid(e.target.value)} placeholder="Bid (ETH)" className="input"/>
-          <input value={salt} onChange={e=>setSalt(e.target.value)} placeholder="Secret Salt" className="input"/>
-          <button onClick={handleCommit} className="btn-primary">Commit Bid</button>
-        </>
-      )}
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
+        </div>
 
-      {phase === "reveal" && (
-        <>
-          <input value={bid} onChange={e=>setBid(e.target.value)} placeholder="Bid (ETH)" className="input"/>
-          <input value={salt} onChange={e=>setSalt(e.target.value)} placeholder="Secret Salt" className="input"/>
-          <button onClick={handleReveal} className="btn-primary">Reveal Bid</button>
-        </>
-      )}
+        <h1 className="text-2xl font-bold text-center">
+          Commit Bid for <span className="text-blue-500">{domain}</span>
+        </h1>
 
-      {phase === "ended" && (
-        <>
-          <p>Highest Bid: {highestBid ? (Number(highestBid)/1e18).toFixed(4) : "Loading"} ETH</p>
-          <button onClick={handleFinalize} className="btn-primary">Finalize Auction</button>
-        </>
-      )}
+        <div className="space-y-4">
+          <label className="text-sm opacity-70">Your Bid (ETH)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.001"
+            value={bidEth}
+            onChange={(e) => setBidEth(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
+            bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
+          />
 
-      {message && <p className="text-center mt-4 text-sky-700">{message}</p>}
+          <button
+            onClick={commit}
+            disabled={!address || isPending}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
+            transition disabled:opacity-40"
+          >
+            {isPending ? "Submitting..." : "Commit Sealed Bid"}
+          </button>
+        </div>
+
+        {msg && (
+          <p className="text-center text-sm opacity-80">{msg}</p>
+        )}
+      </div>
     </div>
   );
 }
