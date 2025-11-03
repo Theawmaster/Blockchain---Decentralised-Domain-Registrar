@@ -5,6 +5,7 @@ import { Copy, Wallet, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import NetworkSwitcher from "@/components/NetworkSwitcher";
+import AppNav from "@/components/AppNav";
 
 export default function ViewWalletDetailPage() {
   const router = useRouter();
@@ -31,77 +32,60 @@ export default function ViewWalletDetailPage() {
   }
 
     return (
-    <div className="flex flex-col items-center pt-16 px-4">
+    <>
+      <AppNav/>
+      <div className="flex justify-center pt-16 px-4">
+        <div className="max-w-5xl w-full rounded-xl border shadow-md
+          bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
+          <h1 className="text-3xl font-extrabold text-center">
+              Wallet Details
+          </h1>
+          {/* Wallet Info */}
+          <div
+              className="border rounded-lg p-5 flex items-center justify-between
+              transition-all duration-200
+              hover:shadow-md hover:-translate-y-[1px]
+              hover:bg-gray-50 dark:hover:bg-gray-800/50"
+          >
+              <div className="flex items-center gap-4">
+              <Wallet className="w-8 h-8 opacity-80" />
+              <div>
+                  <p className="text-sm opacity-60">Connected Wallet</p>
+                  <p className="font-semibold break-all text-sm sm:text-base">
+                  {address}
+                  </p>
+              </div>
+              </div>
 
-        {/* Back & Theme */}
-        <div className="w-full max-w-3xl flex justify-between items-center mb-6">
-        <button
-            onClick={() => router.push("/screens/homepage")}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-gray-100 dark:hover:bg-gray-300 transition-colors cursor-pointer"
-        >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-        </button>
+              <button
+              onClick={handleCopy}
+              className="px-3 py-2 rounded-md text-sm border transition-all duration-200
+              hover:bg-gray-100 dark:hover:bg-gray-300 hover:shadow-sm active:scale-95 cursor-pointer"
+              >
+              <Copy className="w-4 h-4" />
+              </button>
+          </div>
 
-        <ThemeToggle />
-        </div>
+          {/* Balance */}
+          <div
+              className="border rounded-lg p-6 text-center
+              transition-all duration-200
+              hover:shadow-md hover:-translate-y-[1px]
+              hover:bg-gray-50 dark:hover:bg-gray-800/50"
+          >
+              <p className="text-sm opacity-60">Total Balance</p>
+              <p className="text-2xl font-bold mt-2">
+              {balance ? `${balance.formatted} ${balance.symbol}` : "Loading..."}
+              </p>
+          </div>
 
-        {/* Card Container */}
-        <div
-        className="max-w-3xl w-full rounded-xl shadow-lg border
-        bg-[var(--background)] text-[var(--foreground)]
-        transition-colors p-10 space-y-8"
-        >
-        <h1 className="text-center text-3xl font-bold">
-            Wallet Details
-        </h1>
-
-        {/* Wallet Info */}
-        <div
-            className="border rounded-lg p-5 flex items-center justify-between
-            transition-all duration-200
-            hover:shadow-md hover:-translate-y-[1px]
-            hover:bg-gray-50 dark:hover:bg-gray-800/50"
-        >
-            <div className="flex items-center gap-4">
-            <Wallet className="w-8 h-8 opacity-80" />
-            <div>
-                <p className="text-sm opacity-60">Connected Wallet</p>
-                <p className="font-semibold break-all text-sm sm:text-base">
-                {address}
-                </p>
-            </div>
-            </div>
-
-            <button
-            onClick={handleCopy}
-            className="px-3 py-2 rounded-md text-sm border transition-all duration-200
-            hover:bg-gray-100 dark:hover:bg-gray-300 hover:shadow-sm active:scale-95 cursor-pointer"
-            >
-            <Copy className="w-4 h-4" />
-            </button>
-        </div>
-
-        {/* Balance */}
-        <div
-            className="border rounded-lg p-6 text-center
-            transition-all duration-200
-            hover:shadow-md hover:-translate-y-[1px]
-            hover:bg-gray-50 dark:hover:bg-gray-800/50"
-        >
-            <p className="text-sm opacity-60">Total Balance</p>
-            <p className="text-2xl font-bold mt-2">
-            {balance ? `${balance.formatted} ${balance.symbol}` : "Loading..."}
-            </p>
-        </div>
-
-        {/* Controls Row */}
-        <div className="flex justify-center items-center gap-6">
-            <span className="text-sm opacity-60">Select Network:</span>
-            <NetworkSwitcher />
-        </div>
-        </div>
-    </div>
+          {/* Controls Row */}
+          <div className="flex justify-center items-center gap-6">
+              <span className="text-sm opacity-60">Select Network:</span>
+              <NetworkSwitcher />
+          </div>
+          </div>
+      </div>
+    </>
     );
 }

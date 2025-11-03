@@ -6,6 +6,7 @@ import { useReadContract } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { ArrowLeft } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppNav from "@/components/AppNav";
 
 /* -------------------- helpers -------------------- */
 const normalize = (s: string) => {
@@ -99,121 +100,112 @@ export default function ViewAvailableDomainPage() {
   }
 
   return (
-    <div className="flex justify-center pt-16 px-4">
-      <DomainErrorModal open={showError} onClose={() => setShowError(false)} />
+   <>
+    <AppNav/>
+      <div className="flex justify-center pt-16 px-4">
+        <DomainErrorModal open={showError} onClose={() => setShowError(false)} />
 
-      <div className="max-w-5xl w-full rounded-xl border shadow-md
-        bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
+        <div className="max-w-5xl w-full rounded-xl border shadow-md
+          bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
 
-        {/* header */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push("/screens/homepage")}
-            className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <ThemeToggle />
-        </div>
+          {/* header */}       
+          <h1 className="text-3xl font-extrabold text-center">Domain Auctions</h1>
 
-        <h1 className="text-3xl font-extrabold text-center">Domain Auctions</h1>
+          {/* start new auction */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Start a New Domain Auction</h2>
+            <div className="flex gap-3 items-center">
+              <input
+                type="text"
+                placeholder="Enter new domain (e.g., ivan.ntu)"
+                className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
+                bg-[var(--card-bg)] text-[var(--foreground)] focus:ring-2 focus:ring-gray-500"
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                onKeyDown={onEnter}
+              />
+              <button
+                onClick={startAuction}
+                disabled={!canStart}
+                className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700
+                disabled:opacity-40 disabled:cursor-not-allowed transition"
+                title={canStart ? `Start auction for ${normalized}` : "Enter a valid .ntu name"}
+              >
+                Start Auction
+              </button>
+            </div>
+            {rawInput && (
+              <p className="text-xs opacity-70">
+                Will start auction for: <span className="font-mono">{normalized || "—"}</span>
+              </p>
+            )}
+          </div>
 
-        {/* start new auction */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Start a New Domain Auction</h2>
-          <div className="flex gap-3 items-center">
+          <hr className="border-[var(--border)]" />
+
+          {/* search */}
+          <div className="space-y-2">
+            <div className="flex items-end justify-between">
+              <h2 className="text-lg font-semibold">Search Registered Domains</h2>
+              <span className="text-xs opacity-60">
+                {isLoading ? "Loading…" : `${filtered.length} / ${domains.length} shown`}
+              </span>
+            </div>
             <input
               type="text"
-              placeholder="Enter new domain (e.g., ivan.ntu)"
+              placeholder="Search domain name..."
               className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
               bg-[var(--card-bg)] text-[var(--foreground)] focus:ring-2 focus:ring-gray-500"
-              value={rawInput}
-              onChange={(e) => setRawInput(e.target.value)}
-              onKeyDown={onEnter}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
-            <button
-              onClick={startAuction}
-              disabled={!canStart}
-              className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700
-              disabled:opacity-40 disabled:cursor-not-allowed transition"
-              title={canStart ? `Start auction for ${normalized}` : "Enter a valid .ntu name"}
-            >
-              Start Auction
-            </button>
           </div>
-          {rawInput && (
-            <p className="text-xs opacity-70">
-              Will start auction for: <span className="font-mono">{normalized || "—"}</span>
-            </p>
-          )}
-        </div>
 
-        <hr className="border-[var(--border)]" />
-
-        {/* search */}
-        <div className="space-y-2">
-          <div className="flex items-end justify-between">
-            <h2 className="text-lg font-semibold">Search Registered Domains</h2>
-            <span className="text-xs opacity-60">
-              {isLoading ? "Loading…" : `${filtered.length} / ${domains.length} shown`}
-            </span>
-          </div>
-          <input
-            type="text"
-            placeholder="Search domain name..."
-            className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
-            bg-[var(--card-bg)] text-[var(--foreground)] focus:ring-2 focus:ring-gray-500"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* list */}
-        <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-          <table className="min-w-full text-sm">
-            <thead className="bg-[var(--card-bg)]">
-              <tr className="border-b border-[var(--border)]">
-                <th className="px-5 py-3 text-left font-semibold">Domain</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td className="px-5 py-6 opacity-60">Loading…</td>
+          {/* list */}
+          <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[var(--card-bg)]">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-5 py-3 text-left font-semibold">Domain</th>
                 </tr>
-              ) : filtered.length ? (
-                filtered.map((name, idx) => (
-                  <tr
-                    key={`${name}-${idx}`}
-                    onClick={() =>
-                      router.push(`/screens/biddingpage?name=${encodeURIComponent(name)}`)
-                    }
-                    className="border-b border-[var(--border)] hover:bg-[var(--foreground)]/10 cursor-pointer transition"
-                    title={`Open ${name}`}
-                  >
-                    {/* name already includes .ntu — render as-is */}
-                    <td className="px-5 py-3 font-medium">{name}</td>
+              </thead>
+
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td className="px-5 py-6 opacity-60">Loading…</td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 opacity-60">
-                    No domains found{search ? ` for “${search}”` : ""}.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : filtered.length ? (
+                  filtered.map((name, idx) => (
+                    <tr
+                      key={`${name}-${idx}`}
+                      onClick={() =>
+                        router.push(`/screens/biddingpage?name=${encodeURIComponent(name)}`)
+                      }
+                      className="border-b border-[var(--border)] hover:bg-[var(--foreground)]/10 cursor-pointer transition"
+                      title={`Open ${name}`}
+                    >
+                      {/* name already includes .ntu — render as-is */}
+                      <td className="px-5 py-3 font-medium">{name}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-5 py-6 opacity-60">
+                      No domains found{search ? ` for “${search}”` : ""}.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        <p className="text-xs opacity-60">
-          Tip: “Registered Domains” are from the Registry. Active auctions (not yet finalized) appear on
-          the <span className="font-semibold">Active Auctions</span> screen.
-        </p>
+          <p className="text-xs opacity-60">
+            Tip: “Registered Domains” are from the Registry. Active auctions (not yet finalized) appear on
+            the <span className="font-semibold">Active Auctions</span> screen.
+          </p>
+        </div>
       </div>
-    </div>
+    </> 
   );
 }

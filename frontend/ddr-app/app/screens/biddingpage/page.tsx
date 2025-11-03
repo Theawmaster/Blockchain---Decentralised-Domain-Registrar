@@ -14,6 +14,7 @@ import { parseEther, keccak256, encodePacked } from "viem";
 import { upsertBid } from "@/app/lib/bids";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import AppNav from "@/components/AppNav";
 
 export default function BiddingPage() {
   const params = useSearchParams();
@@ -72,52 +73,54 @@ export default function BiddingPage() {
   }
 
   return (
-    <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-        text-[var(--foreground)] p-10 space-y-8">
+    <>
+      <AppNav/>
+      <div className="flex justify-center pt-16 px-4">
+        <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+          text-[var(--foreground)] p-10 space-y-8">
 
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => router.push("/screens/active-auctions")}
-            className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <ThemeToggle />
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => router.push("/screens/active-auctions")}
+              className="px-4 py-2 rounded-lg border border-[var(--border)]
+              hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          </div>
+
+          <h1 className="text-2xl font-bold text-center">
+            Commit Bid for <span className="text-blue-500">{domain}</span>
+          </h1>
+
+          <div className="space-y-4">
+            <label className="text-sm opacity-70">Your Bid (ETH)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.001"
+              value={bidEth}
+              onChange={(e) => setBidEth(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
+              bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+
+            <button
+              onClick={commit}
+              disabled={!address || isPending}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
+              transition disabled:opacity-40"
+            >
+              {isPending ? "Submitting..." : "Commit Sealed Bid"}
+            </button>
+          </div>
+
+          {msg && (
+            <p className="text-center text-sm opacity-80">{msg}</p>
+          )}
         </div>
-
-        <h1 className="text-2xl font-bold text-center">
-          Commit Bid for <span className="text-blue-500">{domain}</span>
-        </h1>
-
-        <div className="space-y-4">
-          <label className="text-sm opacity-70">Your Bid (ETH)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.001"
-            value={bidEth}
-            onChange={(e) => setBidEth(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
-            bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-
-          <button
-            onClick={commit}
-            disabled={!address || isPending}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-            transition disabled:opacity-40"
-          >
-            {isPending ? "Submitting..." : "Commit Sealed Bid"}
-          </button>
-        </div>
-
-        {msg && (
-          <p className="text-center text-sm opacity-80">{msg}</p>
-        )}
       </div>
-    </div>
+    </>
   );
 }

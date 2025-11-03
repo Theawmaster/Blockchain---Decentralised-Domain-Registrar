@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -47,6 +47,7 @@ export default function AppNav() {
       {/* Notification to be implemented */}
       {/* <div className="flex-1" />
       <NotificationBell /> */}
+      <NotificationBell/>
 
       {/* Theme Toggle */}
       <ThemeToggle />

@@ -6,6 +6,7 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked, isAddress } from "viem";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
+import AppNav from "@/components/AppNav";
 
 export default function ViewRegisteredDomainPage() {
   const { address } = useAccount();
@@ -135,102 +136,96 @@ export default function ViewRegisteredDomainPage() {
   }
 
 return (
-  <div className="max-w-3xl mx-auto pt-16 px-4 space-y-8 text-[var(--foreground)]">
+  <>
+    <AppNav/>
+      <div className="flex justify-center pt-16 px-4">
+        <div className="max-w-5xl w-full rounded-xl border shadow-md
+          bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
+          {/* Top Row */}
+          <h1 className="text-3xl font-extrabold text-center">My Owned Domains</h1>
 
-    {/* Top Row */}
-    <div className="flex justify-between items-center">
-      <button
-        onClick={() => router.push("/screens/homepage")}
-        className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-[var(--foreground)]/10 cursor-pointer"
-      >
-        ← Back
-      </button>
+          {!loaded && <p className="opacity-60">Loading...</p>}
 
-      <h1 className="text-3xl font-bold">My Owned Domains</h1>
+          {loaded && domains.length === 0 && (
+            <p className="opacity-60 text-center">You don’t own any domains yet.</p>
+          )}
 
-      <ThemeToggle />
-    </div>
+          {/* List of Owned Domains */}
+          {domains.map((d) => {
+            const hasResolve = d.resolve !== "0x0000000000000000000000000000000000000000";
 
-    {!loaded && <p className="opacity-60">Loading...</p>}
+            return (
+              <div key={d.name} className="border p-4 rounded-lg bg-[var(--card-bg)]">
+                <div className="text-lg font-semibold">{d.name}</div>
+                <div className="opacity-80 text-sm break-all">
+                  Resolve: {hasResolve ? d.resolve : "(none set)"}
+                </div>
 
-    {loaded && domains.length === 0 && (
-      <p className="opacity-60 text-center">You don’t own any domains yet.</p>
-    )}
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={() => !hasResolve && openModal(d, "resolve")}
+                    disabled={hasResolve} // ✅ disable if already resolved
+                    className={`px-3 py-1 rounded-md text-sm transition
+                      ${hasResolve
+                        ? "bg-gray-500 opacity-60 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                      }`}
+                  >
+                    {hasResolve ? "Already Resolved" : "Set Resolve"}
+                  </button>
 
-    {/* List of Owned Domains */}
-    {domains.map((d) => {
-      const hasResolve = d.resolve !== "0x0000000000000000000000000000000000000000";
+                  <button
+                    onClick={() => openModal(d, "transfer")}
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm cursor-pointer transition"
+                  >
+                    Transfer Owner
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
-      return (
-        <div key={d.name} className="border p-4 rounded-lg bg-[var(--card-bg)]">
-          <div className="text-lg font-semibold">{d.name}</div>
-          <div className="opacity-80 text-sm break-all">
-            Resolve: {hasResolve ? d.resolve : "(none set)"}
-          </div>
+          {/* Modals (leave your existing modal code unchanged) */}
+          {mode && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-6 w-[90%] max-w-sm space-y-4 transition-all">
+                <h2 className="text-lg font-bold">
+                  {mode === "resolve" ? "Set Resolve Address" : "Transfer Ownership"}
+                </h2>
 
-          <div className="flex gap-3 mt-3">
-            <button
-              onClick={() => !hasResolve && openModal(d, "resolve")}
-              disabled={hasResolve} // ✅ disable if already resolved
-              className={`px-3 py-1 rounded-md text-sm transition
-                ${hasResolve
-                  ? "bg-gray-500 opacity-60 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
-                }`}
-            >
-              {hasResolve ? "Already Resolved" : "Set Resolve"}
-            </button>
+                <input
+                  className="w-full border p-2 rounded bg-[var(--background)]"
+                  placeholder="0xWalletAddress"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                />
 
-            <button
-              onClick={() => openModal(d, "transfer")}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm cursor-pointer transition"
-            >
-              Transfer Owner
-            </button>
-          </div>
-        </div>
-      );
-    })}
+                <div className="flex justify-end gap-3">
+                  <button onClick={closeModal} className="px-4 py-2 rounded border hover:bg-[var(--foreground)] hover:text-[var(--background)]">
+                    Cancel
+                  </button>
+                  <button onClick={submit} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-    {/* Modals (leave your existing modal code unchanged) */}
-    {mode && (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-6 w-[90%] max-w-sm space-y-4 transition-all">
-          <h2 className="text-lg font-bold">
-            {mode === "resolve" ? "Set Resolve Address" : "Transfer Ownership"}
-          </h2>
-
-          <input
-            className="w-full border p-2 rounded bg-[var(--background)]"
-            placeholder="0xWalletAddress"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-
-          <div className="flex justify-end gap-3">
-            <button onClick={closeModal} className="px-4 py-2 rounded border hover:bg-[var(--foreground)] hover:text-[var(--background)]">
-              Cancel
-            </button>
-            <button onClick={submit} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">
-              Confirm
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {resultModal && (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999]">
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl shadow-xl p-6 w-[90%] max-w-sm text-center space-y-4 transition-all">
-          <h2 className="text-lg font-semibold">{resultModal.ok ? "Success" : "Error"}</h2>
-          <p className="opacity-80 text-sm">{resultModal.message}</p>
-          <button onClick={() => setResultModal(null)} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white w-full">
-            Close
-          </button>
+          {resultModal && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999]">
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl shadow-xl p-6 w-[90%] max-w-sm text-center space-y-4 transition-all">
+                <h2 className="text-lg font-semibold">{resultModal.ok ? "Success" : "Error"}</h2>
+                <p className="opacity-80 text-sm">{resultModal.message}</p>
+                <button onClick={() => setResultModal(null)} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white w-full">
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    )}
-  </div>
+  </>
 );
 
 }
