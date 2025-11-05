@@ -145,7 +145,7 @@ export default function HomePage() {
               className="border rounded-lg p-6 transition-all duration-200
               hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
-              <h3 className="font-semibold mb-2 text-xl">Active Auctions Participated</h3>
+              <h3 className="font-semibold mb-2 text-xl">Active Auctions</h3>
               <p className="text-2xl font-bold">2 Auctions</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function HomePage() {
           {/* Auction Participation */}
           <div className="border rounded-lg p-6">
             <h3 className="font-semibold mb-4 text-2xl text-center">
-              Auction Participation Status
+              Active Auction Status
             </h3>
             {auctions.map((a) => (
               <div

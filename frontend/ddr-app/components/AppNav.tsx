@@ -41,8 +41,8 @@ export default function AppNav() {
       </Link>
 
       <div className="flex gap-4 text-sm">
-        <NavLink href="/screens/viewavailabledomainpage" label="Register Domain" />
-        <NavLink href="/screens/viewregistereddomainpage" label="Owned Domain" />
+        <NavLink href="/screens/viewavailabledomainpage" label="Manage Domain" />
+        <NavLink href="/screens/viewregistereddomainpage" label="My Domain" />
         <NavLink href="/screens/active-auctions" label="Auction List" />
         <NavLink href="/screens/viewwalletdetailpage" label="My Wallet" />
       </div>
