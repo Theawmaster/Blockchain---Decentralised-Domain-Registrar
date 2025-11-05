@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useReadContract, usePublicClient } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked } from "viem";
-import { ArrowLeft } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppNav from "@/components/AppNav";
 
@@ -81,6 +80,10 @@ export default function ViewAvailableDomainPage() {
   const [search, setSearch] = useState("");
   const [showError, setShowError] = useState(false);
   const [showTakenModal, setShowTakenModal] = useState(false);
+  const [resolveStatus, setResolveStatus] = useState<Record<string, string>>({});
+
+  const [namesByOwner, setNamesByOwner] = useState<string[]>([]);
+  const [loadingNames, setLoadingNames] = useState(false);
 
   const { data: allNames, isLoading } = useReadContract({
     address: CONTRACTS.registry.address,
@@ -103,14 +106,52 @@ export default function ViewAvailableDomainPage() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 200);
+    const t = setTimeout(async () => {
+      const term = search.trim().toLowerCase();
+      setDebounced(term);
+
+      // If input looks like an Ethereum address, fetch names of owner
+      if (term.startsWith("0x") && term.length === 42) {
+        await fetchNamesOfOwner(term);
+      } else {
+        setNamesByOwner([]); // reset if not an address
+      }
+    }, 200);
+
     return () => clearTimeout(t);
   }, [search]);
 
+  // Fetch names owned by an address
+  async function fetchNamesOfOwner(address: string) {
+  if (!address) return;
+  setLoadingNames(true);
+  try {
+    const result = await publicClient?.readContract({
+      address: CONTRACTS.registry.address,
+      abi: CONTRACTS.registry.abi,
+      functionName: "namesOfOwner",
+      args: [address],
+    });
+
+    // Type assertion to string[]
+    setNamesByOwner((result as string[]) || []);
+  } catch (err) {
+    console.error("Failed to fetch names:", err);
+    setNamesByOwner([]);
+  } finally {
+    setLoadingNames(false);
+  }
+}
+
+
   const filtered = useMemo(() => {
+    // If search is an address and we have results, use namesByOwner
+    if (search.startsWith("0x") && namesByOwner.length > 0) return namesByOwner;
+
+    // Normal domain search
     if (!debounced) return domains;
     return domains.filter((n) => n.toLowerCase().includes(debounced));
-  }, [domains, debounced]);
+  }, [domains, debounced, namesByOwner, search]);
 
   const canStart = isValidDotNtu(rawInput);
   const normalized = normalize(rawInput);
@@ -147,101 +188,132 @@ export default function ViewAvailableDomainPage() {
     if (e.key === "Enter") startAuction();
   }
 
+  async function fetchResolveStatus(domain: string) {
+    try {
+      await publicClient?.readContract({
+        address: CONTRACTS.registry.address,
+        abi: CONTRACTS.registry.abi,
+        functionName: "resolve",
+        args: [domain],
+      });
+      setResolveStatus((prev) => ({ ...prev, [domain]: "Resolved" }));
+    } catch {
+      setResolveStatus((prev) => ({ ...prev, [domain]: "Not Resolved" }));
+    }
+  }
+
+  useEffect(() => {
+    filtered.forEach((domain) => {
+      if (!resolveStatus[domain]) fetchResolveStatus(domain);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered]);
+
   return (
     <>
-    <AppNav/>
-    <div className="flex justify-center pt-16 px-4">
-      <DomainErrorModal open={showError} onClose={() => setShowError(false)} />
-      <DomainTakenModal open={showTakenModal} onClose={() => setShowTakenModal(false)} />
+      <AppNav />
+      <div className="flex justify-center pt-16 px-4">
+        <DomainErrorModal open={showError} onClose={() => setShowError(false)} />
+        <DomainTakenModal open={showTakenModal} onClose={() => setShowTakenModal(false)} />
 
-      <div
-        className="max-w-5xl w-full rounded-xl border shadow-md
-        bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10"
-      >
+        <div
+          className="max-w-5xl w-full rounded-xl border shadow-md
+          bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10"
+        >
+          <h1 className="text-3xl font-extrabold text-center">Domain Auctions</h1>
 
-        <h1 className="text-3xl font-extrabold text-center">Domain Auctions</h1>
+          {/* Start a New Domain Auction */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Start a New Domain Auction</h2>
 
-        {/* Start a New Domain Auction */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Start a New Domain Auction</h2>
+            <div className="flex gap-3 items-center">
+              <input
+                type="text"
+                placeholder="Enter new domain (e.g., ivan.ntu)"
+                className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
+                bg-[var(--card-bg)] focus:ring-2 focus:ring-gray-500"
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                onKeyDown={onEnter}
+              />
+              <button
+                onClick={startAuction}
+                disabled={!canStart}
+                className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700
+                disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Start Auction
+              </button>
+            </div>
 
-          <div className="flex gap-3 items-center">
-            <input
-              type="text"
-              placeholder="Enter new domain (e.g., ivan.ntu)"
-              className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
-              bg-[var(--card-bg)] focus:ring-2 focus:ring-gray-500"
-              value={rawInput}
-              onChange={(e) => setRawInput(e.target.value)}
-              onKeyDown={onEnter}
-            />
-            <button
-              onClick={startAuction}
-              disabled={!canStart}
-              className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700
-              disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-            >
-              Start Auction
-            </button>
+            {rawInput && (
+              <p className="text-xs opacity-70">
+                Normalized: <span className="font-mono">{normalized}</span>
+              </p>
+            )}
           </div>
 
-          {rawInput && (
-            <p className="text-xs opacity-70">
-              Normalized: <span className="font-mono">{normalized}</span>
-            </p>
-          )}
-        </div>
+          <hr className="border-[var(--border)]" />
 
-        <hr className="border-[var(--border)]" />
+          {/* Search Registered Domains */}
+          <h2 className="text-lg font-semibold mb-3">Search Registered Domains</h2>
+          <input
+            type="text"
+            placeholder="Search domain (e.g ivan.ntu or 0x03....34)"
+            className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
+            bg-[var(--card-bg)] focus:ring-2 focus:ring-gray-500"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-        {/* Search Registered Domains */}
-        <h2 className="text-lg font-semibold">Search Registered Domains</h2>
-
-        <input
-          type="text"
-          placeholder="Search domain name..."
-          className="w-full max-w-md px-4 py-2 rounded-lg border border-[var(--border)]
-          bg-[var(--card-bg)] focus:ring-2 focus:ring-gray-500"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <div className="overflow-hidden rounded-xl border">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--card-bg)]">
-                <th className="px-5 py-3 text-left font-semibold">Domain</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td className="px-5 py-6 opacity-60">Loading…</td>
-                </tr>
-              ) : filtered.length ? (
-                filtered.map((name, idx) => (
-                  <tr
-                    key={idx}
-                    className="border-b border-[var(--border)]
-                    hover:bg-[var(--foreground)]/10 transition"
-                  >
-                    <td className="px-5 py-3 font-medium">{name}</td>
+          <div className="overflow-hidden rounded-xl border">
+            <div
+              className="h-[225px] overflow-y-scroll pr-2
+              scrollbar-thin scrollbar-thumb-[var(--foreground)] scrollbar-track-[var(--background)]"
+            >
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--card-bg)] sticky top-0">
+                    <th className="px-5 py-3 text-left font-semibold">Domain Name</th>
+                    <th className="px-5 py-3 text-left font-semibold">Resolve Status</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 opacity-60">No domains found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {isLoading || loadingNames ? (
+                    <tr>
+                      <td colSpan={2} className="px-5 py-6 opacity-60 text-center">
+                        Loading…
+                      </td>
+                    </tr>
+                  ) : filtered.length ? (
+                    filtered.map((name, idx) => (
+                      <tr
+                        key={idx}
+                        className="border-b border-[var(--border)] hover:bg-[var(--foreground)]/10 transition"
+                      >
+                        <td className="px-5 py-3 font-medium">{name}</td>
+                        <td className="px-5 py-3">
+                          {resolveStatus[name] || <span className="opacity-50">Checking…</span>}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={2} className="px-5 py-6 opacity-60 text-center">
+                        No domains found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <p className="text-xs opacity-60">
-          Note: Active auctions appear on the <strong>Active Auctions</strong> page.
-        </p>
+          <p className="text-xs opacity-60">
+            Note: Active auctions appear on the <strong>Active Auctions</strong> page.
+          </p>
+        </div>
       </div>
-    </div>
     </>
   );
 }

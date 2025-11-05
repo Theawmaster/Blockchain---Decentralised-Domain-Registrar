@@ -313,7 +313,11 @@ export default function HomePage() {
           {/* Auction Participation */}
           <div className="border rounded-lg p-6">
             <h3 className="font-semibold mb-4 text-2xl text-center">
+<<<<<<< HEAD
               Ongoing Auctions
+=======
+              Active Auction Status
+>>>>>>> origin/main
             </h3>
 
             <div className="grid grid-cols-2 font-semibold text-center border-b pb-2 mb-2">
