@@ -208,7 +208,7 @@ export default function HomePage() {
           {/* Auction Participation */}
           <div className="border rounded-lg p-6">
             <h3 className="font-semibold mb-4 text-2xl text-center">
-              Auction Participation Status
+              Active Auction Status
             </h3>
             {auctions.map((a) => (
               <div
