@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import NetworkSwitcher from "@/components/NetworkSwitcher";
 import AppNav from "@/components/AppNav";
+import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 export default function ViewWalletDetailPage() {
   const router = useRouter();
@@ -13,7 +15,11 @@ export default function ViewWalletDetailPage() {
   const { data: balance } = useBalance({ address });
 
   const handleCopy = () => {
-    if (!address) return;
+    if (!address) {
+      toast.error("No address to copy!");
+      return;
+    } 
+    toast.success("Address copied to clipboard!");
     navigator.clipboard.writeText(address);
   };
 
@@ -32,6 +38,15 @@ export default function ViewWalletDetailPage() {
       </div>
     );
   }
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   return (
     <>
@@ -65,7 +80,7 @@ export default function ViewWalletDetailPage() {
             </div>
             <button
               onClick={handleCopy}
-              className="text-sm border rounded-md px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="text-sm border rounded-md px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-400 cursor-pointer transition-flex items-center"
             >
               <Copy className="w-4 h-4 inline-block mr-1" />
               Copy

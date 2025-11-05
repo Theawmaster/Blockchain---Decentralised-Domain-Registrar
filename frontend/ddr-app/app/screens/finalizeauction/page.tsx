@@ -150,6 +150,17 @@ export default function FinalizeAuctionPage() {
     }
   }
 
+  /* Prevent user going back */
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+    }, []);
+
   return (
     <div className="flex justify-center pt-16 px-4">
       <Modal open={modal.open} title={modal.title} message={modal.message} onClose={modal.onClose} />
