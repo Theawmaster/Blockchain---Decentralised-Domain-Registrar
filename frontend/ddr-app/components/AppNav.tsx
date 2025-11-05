@@ -155,8 +155,8 @@ export default function AppNav() {
                 </button>
                 <button
                   onClick={() => {
-                    router.push("/screens/authpage");
                     disconnect();
+                    router.push("/screens/authpage");
                   }}
                   className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition cursor-pointer"
                 >
