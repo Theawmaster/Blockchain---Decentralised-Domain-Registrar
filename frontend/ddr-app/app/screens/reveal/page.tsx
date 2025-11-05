@@ -67,6 +67,15 @@ export default function RevealPage() {
     setPending((p) => p.filter((x) => x.domain !== item.domain));
   }
 
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+    }, []);
+
   return (
     <div className="flex justify-center pt-16 px-4">
       <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]

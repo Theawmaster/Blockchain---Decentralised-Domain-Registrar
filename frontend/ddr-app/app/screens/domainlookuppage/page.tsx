@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useReadContract } from "wagmi";
 import { Layout } from "@/app/layout";
 import { CONTRACTS } from "@/lib/web3/contract";
@@ -14,7 +14,7 @@ export default function domainlookuppage() {
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState("");
   const [owner, setOwner] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Call the contract only when the user clicks "Search"
   const { data, refetch, isFetching } = useReadContract({
     address: REGISTRY.address as `0x${string}`,
@@ -35,6 +35,15 @@ export default function domainlookuppage() {
     const result = await refetch();
     setOwner(result?.data ? (result.data as string) : null);
   };
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Wallet, ArrowLeft } from "lucide-react";
+import { Wallet, Globe, Gavel, BadgeCheck, Undo2 } from "lucide-react";
 import { useAccount, useReadContract, usePublicClient, useChainId } from "wagmi";
 import AppNav from "@/components/AppNav";
 import { CONTRACTS } from "@/lib/web3/contract";
@@ -24,6 +24,15 @@ export default function HomePage() {
     abi: CONTRACTS.auctionHouse.abi,
     functionName: "getActiveAuctions",
   });
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   useEffect(() => {
     if (!address || !publicClient) return;
@@ -137,6 +146,7 @@ export default function HomePage() {
               className="border rounded-lg p-6 transition-all duration-200
               hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
+              <Globe className="w-10 h-10 opacity-80" />
               <h3 className="font-semibold mb-2 text-xl">Total Domains Owned</h3>
               <p className="text-2xl font-bold">{domains.length} Domains</p>
             </div>
@@ -145,6 +155,7 @@ export default function HomePage() {
               className="border rounded-lg p-6 transition-all duration-200
               hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
+              <Gavel className="w-10 h-10 opacity-80" />
               <h3 className="font-semibold mb-2 text-xl">Active Auctions Participated</h3>
               <p className="text-2xl font-bold">2 Auctions</p>
             </div>
@@ -153,7 +164,9 @@ export default function HomePage() {
           {/* Owned Domains & Refunds */}
           <div className="grid grid-cols-2 gap-6">
             {/* Owned Domains */}
-            <div className="border rounded-lg p-6">
+            <div className="border rounded-lg p-6 transition-all duration-200
+              hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <BadgeCheck className="w-10 h-10 opacity-80" />
               <h3 className="font-semibold mb-4 text-2xl text-center">Owned Domains</h3>
               {domains.length === 0 ? (
                 <p className="text-center pt-6 opacity-70">No domains owned yet.</p>
@@ -170,7 +183,9 @@ export default function HomePage() {
             </div>
 
             {/* Pending Refunds */}
-            <div className="border rounded-lg p-6">
+            <div className="border rounded-lg p-6 transition-all duration-200
+              hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50">
+               <Undo2 className="w-10 h-10 opacity-80" />
               <h3 className="font-semibold mb-4 text-2xl text-center">Pending Refunds</h3>
               {refunds.length === 0 ? (
                 <p className="text-center pt-6 opacity-70">No refundable deposits.</p>

@@ -40,7 +40,7 @@ function DomainErrorModal({ open, onClose }: { open: boolean; onClose: () => voi
         </p>
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition"
+          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
         >
           Got it
         </button>
@@ -92,6 +92,16 @@ export default function ViewAvailableDomainPage() {
   const domains: string[] = Array.isArray(allNames) ? (allNames as string[]) : [];
 
   const [debounced, setDebounced] = useState(search);
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 200);
     return () => clearTimeout(t);
@@ -169,7 +179,7 @@ export default function ViewAvailableDomainPage() {
               onClick={startAuction}
               disabled={!canStart}
               className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700
-              disabled:opacity-40 disabled:cursor-not-allowed transition"
+              disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
             >
               Start Auction
             </button>

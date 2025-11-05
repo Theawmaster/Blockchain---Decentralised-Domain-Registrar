@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWriteContract, useAccount } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -18,7 +18,7 @@ function AppModal({ open, title, message, onClose }: any) {
         <p className="opacity-80">{message}</p>
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition"
+          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
         >
           OK
         </button>
@@ -77,6 +77,15 @@ export default function StartAuctionPage() {
       showModal("Transaction Failed ❌", err?.shortMessage || "Please try again.");
     }
   }
+  
+    useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   return (
     <div className="flex justify-center pt-16 px-4">
@@ -90,7 +99,7 @@ export default function StartAuctionPage() {
           <button
             onClick={() => router.push("/screens/active-auctions")}
             className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 flex items-center gap-2"
+            hover:bg-[var(--foreground)]/25 flex items-center gap-2 cursor-pointer transition"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
@@ -105,7 +114,7 @@ export default function StartAuctionPage() {
             onClick={handleStartAuction}
             disabled={isPending}
             className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-600 hover:bg-gray-700
-              disabled:opacity-40 transition"
+              disabled:opacity-40 transition cursor-pointer"
           >
             {isPending ? "Starting..." : "Start Auction"}
           </button>

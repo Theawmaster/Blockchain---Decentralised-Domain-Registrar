@@ -7,6 +7,9 @@ import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationBell from "@/components/NotificationBell";
+import toast from "react-hot-toast";
+import { HelpCircle } from "lucide-react";
+import OnboardingModal from "@/components/OnboardingModal";
 
 export default function AppNav() {
   const router = useRouter();
@@ -16,6 +19,21 @@ export default function AppNav() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!isConnected) {
+      router.replace("/screens/authpage"); // prevents history back access
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("hasSeenOnboarding");
+    if (!seen) {
+      setShowOnboarding(true);
+      localStorage.setItem("hasSeenOnboarding", "true");
+    }
+  }, []);
 
   useEffect(() => setMounted(true), []);
 
@@ -48,6 +66,15 @@ export default function AppNav() {
       </div>
 
       <div className="flex-1" />
+
+      {/* Onboarding Modal*/}
+        <button
+          onClick={() => setShowOnboarding(true)}
+          className="p-2 rounded-md hover:bg-[var(--foreground)]/25 transition transition cursor-pointer"
+          title="How this works"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
 
       <NotificationBell />
       <ThemeToggle />
@@ -84,10 +111,10 @@ export default function AppNav() {
   onClick={() => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(address!);
-      alert("Address copied!");
+      toast.success("Address copied!");
     } else {
       console.warn("Clipboard API not available");
-      alert("Clipboard not supported in this environment.");
+      toast.error("Clipboard not supported in this environment.");
     }
   }}
   className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
@@ -155,8 +182,12 @@ export default function AppNav() {
                 </button>
                 <button
                   onClick={() => {
-                    router.push("/screens/authpage");
                     disconnect();
+                    router.replace("/screens/authpage");  // prevents Back button return
+                    window.history.pushState(null, "", window.location.href); 
+                    window.onpopstate = () => {
+                      router.replace("/screens/authpage");
+                    };
                   }}
                   className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition cursor-pointer"
                 >
@@ -167,6 +198,7 @@ export default function AppNav() {
           </motion.div>
         )}
       </AnimatePresence>
+      <OnboardingModal open={showOnboarding} setOpen={setShowOnboarding} />
     </nav>
   );
 }
