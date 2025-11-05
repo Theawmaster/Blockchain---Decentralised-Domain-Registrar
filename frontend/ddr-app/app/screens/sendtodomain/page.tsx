@@ -6,7 +6,6 @@ import { parseEther } from "viem";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
-import AppNav from "@/components/AppNav";
 
 export default function SendToDomainPage() {
   const router = useRouter();
@@ -78,66 +77,75 @@ export default function SendToDomainPage() {
 
   return (
     <>
-      <AppNav/>
-      <div className="flex justify-center pt-16 px-4">
-          <div className="max-w-2xl w-full rounded-xl border shadow-md
-          bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
 
-            <h1 className="text-3xl font-extrabold text-center">Send ETH to Domain</h1>
+      <div className="max-w-lg mx-auto space-y-6 p-6 text-[var(--foreground)]">
 
-            {/* Domain Input */}
-            <input
-              placeholder="example.ntu"
-              className="border p-2 w-full rounded bg-[var(--background)]"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-            />
+        {/* Header & Back */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/homepage")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
+          >
+            ← Back
+          </button>
+          <ThemeToggle />
+        </div>
+
+        <h1 className="text-2xl font-bold text-center">Send ETH to Domain</h1>
+
+        {/* Domain Input */}
+        <input
+          placeholder="example.ntu"
+          className="border p-2 w-full rounded bg-[var(--background)]"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+        />
+
+        <button
+          onClick={lookup}
+          className="bg-gray-600 text-white px-4 py-2 rounded w-full cursor-pointer hover:bg-gray-700 transition"
+        >
+          Lookup Owner
+        </button>
+
+        {msg && <p className="text-center text-sm">{msg}</p>}
+
+        {/* Wallet + Send Box */}
+        {resolved && resolved !== "0x0000000000000000000000000000000000000000" && (
+          <div className="space-y-3">
+
+            {/* Wallet Balance Display */}
+            <p className="text-sm opacity-80">
+              💰 Wallet Balance: {balance.toFixed(4)} ETH
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="border p-2 w-full rounded bg-[var(--background)]"
+                placeholder="Amount (ETH)"
+              />
+              <button
+                onClick={setMax}
+                className="px-3 py-1 border rounded hover:bg-[var(--foreground)] hover:text-[var(--background)] transition cursor-pointer" 
+              >
+                MAX
+              </button>
+            </div>
 
             <button
-              onClick={lookup}
-              className="bg-gray-600 text-white px-4 py-2 rounded w-full cursor-pointer hover:bg-gray-700 transition"
+              onClick={send}
+              disabled={!amount || Number(amount) <= 0 || Number(amount) > balance}
+              className="bg-green-600 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-green-700 transition"
             >
-              Lookup Owner
+              Send ETH
             </button>
 
-            {msg && <p className="text-center text-sm">{msg}</p>}
-
-            {/* Wallet + Send Box */}
-            {resolved && resolved !== "0x0000000000000000000000000000000000000000" && (
-              <div className="space-y-3">
-
-                {/* Wallet Balance Display */}
-                <p className="text-sm opacity-80">
-                  💰 Wallet Balance: {balance.toFixed(4)} ETH
-                </p>
-
-                <div className="flex gap-2">
-                  <input
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="border p-2 w-full rounded bg-[var(--background)]"
-                    placeholder="Amount (ETH)"
-                  />
-                  <button
-                    onClick={setMax}
-                    className="px-3 py-1 border rounded hover:bg-[var(--foreground)] hover:text-[var(--background)] transition cursor-pointer" 
-                  >
-                    MAX
-                  </button>
-                </div>
-
-                <button
-                  onClick={send}
-                  disabled={!amount || Number(amount) <= 0 || Number(amount) > balance}
-                  className="bg-green-600 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-green-700 transition"
-                >
-                  Send ETH
-                </button>
-
-              </div>
-            )}
           </div>
-      </div> 
+        )}
+      </div>
     </>
   );
 }

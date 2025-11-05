@@ -12,7 +12,6 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked, formatEther } from "viem";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
-import AppNav from "@/components/AppNav";
 
 /* ---------------- Small UI Components ---------------- */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -145,51 +144,49 @@ export default function FinalizeAuctionPage() {
   }
 
   return (
-    <>
-      <AppNav/>
-      <div className="flex justify-center pt-16 px-4">
-        <Modal open={modal.open} title={modal.title} message={modal.message} onClose={modal.onClose} />
+    <div className="flex justify-center pt-16 px-4">
+      <Modal open={modal.open} title={modal.title} message={modal.message} onClose={modal.onClose} />
 
-        <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-8 space-y-8">
-          <div className="flex items-center justify-between">
-            <button onClick={() => router.push("/screens/active-auctions")} className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2 cursor-pointer">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          </div>
-
-          <h1 className="text-2xl font-bold text-center">Finalize Auction</h1>
-          <p className="text-center font-semibold text-lg">{domain}</p>
-
-          <Section title="Auction Status">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><div className="opacity-70">Phase</div><div>{phase}</div></div>
-              <div><div className="opacity-70">Highest Bid</div><div>{formatEther(highestBid)} ETH</div></div>
-              <div><div className="opacity-70">Highest Bidder</div><div className="break-all">{highestBidder || "—"}</div></div>
-            </div>
-          </Section>
-
-          <Section title="Transaction">
-            <div className="flex justify-between text-sm">
-              <div className="opacity-70">Estimated Gas</div>
-              <div>{gasEth !== "-" ? `${Number(gasEth).toFixed(6)} ETH` : "—"}</div>
-            </div>
-          </Section>
-
-          <div className="flex justify-center">
-            <button
-              onClick={finalizeAuction}
-              disabled={!canFinalize || isPending}
-              className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-800 disabled:opacity-40 cursor-pointer transition"
-            >
-              {isPending ? "Finalizing..." : finalized ? "Already Finalized" : "Finalize Auction"}
-            </button>
-          </div>
-
-          <p className="text-center text-xs opacity-60">
-            Finalizing registers ownership for the highest valid bidder.
-          </p>
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <button onClick={() => router.push("/screens/active-auctions")} className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2 cursor-pointer">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
         </div>
+
+        <h1 className="text-2xl font-bold text-center">Finalize Auction</h1>
+        <p className="text-center font-semibold text-lg">{domain}</p>
+
+        <Section title="Auction Status">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><div className="opacity-70">Phase</div><div>{phase}</div></div>
+            <div><div className="opacity-70">Highest Bid</div><div>{formatEther(highestBid)} ETH</div></div>
+            <div><div className="opacity-70">Highest Bidder</div><div className="break-all">{highestBidder || "—"}</div></div>
+          </div>
+        </Section>
+
+        <Section title="Transaction">
+          <div className="flex justify-between text-sm">
+            <div className="opacity-70">Estimated Gas</div>
+            <div>{gasEth !== "-" ? `${Number(gasEth).toFixed(6)} ETH` : "—"}</div>
+          </div>
+        </Section>
+
+        <div className="flex justify-center">
+          <button
+            onClick={finalizeAuction}
+            disabled={!canFinalize || isPending}
+            className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-800 disabled:opacity-40 cursor-pointer transition"
+          >
+            {isPending ? "Finalizing..." : finalized ? "Already Finalized" : "Finalize Auction"}
+          </button>
+        </div>
+
+        <p className="text-center text-xs opacity-60">
+          Finalizing registers ownership for the highest valid bidder.
+        </p>
       </div>
-    </>
+    </div>
   );
 }

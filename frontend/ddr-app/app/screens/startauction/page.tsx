@@ -6,8 +6,6 @@ import { useWriteContract, useAccount } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
-import AppNav from "@/components/AppNav";
-import { useNotifications } from "@/app/context/NotificationContext";
 
 /* Modal Component */
 function AppModal({ open, title, message, onClose }: any) {
@@ -81,40 +79,38 @@ export default function StartAuctionPage() {
   }
 
   return (
-    <>
-      <AppNav/>
-      <div className="flex justify-center pt-16 px-4">
-        <AppModal {...modal} />
+    <div className="flex justify-center pt-16 px-4">
+      <AppModal {...modal} />
 
-        <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-          text-[var(--foreground)] p-10 space-y-8">
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
 
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <button
-              onClick={() => router.push("/screens/viewavailabledomainpage")}
-              className="px-4 py-2 rounded-lg border border-[var(--border)]
-              hover:bg-[var(--foreground)]/10 flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          </div>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
+        </div>
 
-          <h1 className="text-2xl font-bold text-center">Start Auction</h1>
-          <p className="text-center text-lg font-semibold">{domain}</p>
+        <h1 className="text-2xl font-bold text-center">Start Auction</h1>
+        <p className="text-center text-lg font-semibold">{domain}</p>
 
-          <div className="flex justify-center pt-8">
-            <button
-              onClick={handleStartAuction}
-              disabled={isPending}
-              className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-600 hover:bg-gray-700
-                disabled:opacity-40 transition"
-            >
-              {isPending ? "Starting..." : "Start Auction"}
-            </button>
-          </div>
+        <div className="flex justify-center pt-8">
+          <button
+            onClick={handleStartAuction}
+            disabled={isPending}
+            className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-600 hover:bg-gray-700
+              disabled:opacity-40 transition"
+          >
+            {isPending ? "Starting..." : "Start Auction"}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
