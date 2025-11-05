@@ -215,7 +215,9 @@ export default function ViewAvailableDomainPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td className="px-5 py-6 opacity-60">Loading…</td></tr>
+                <tr>
+                  <td className="px-5 py-6 opacity-60">Loading…</td>
+                </tr>
               ) : filtered.length ? (
                 filtered.map((name, idx) => (
                   <tr
