@@ -30,6 +30,10 @@ export default function ViewWalletDetailPage() {
           className="p-6 border rounded-lg shadow-md text-center w-full max-w-sm
           bg-[var(--background)] text-[var(--foreground)]"
         >
+        <div
+          className="p-6 border rounded-lg shadow-md text-center w-full max-w-sm
+          bg-[var(--background)] text-[var(--foreground)]"
+        >
           <p className="text-lg font-semibold">No wallet connected</p>
           <p className="text-sm opacity-70 mt-2">
             Please connect your wallet to view your wallet details.
