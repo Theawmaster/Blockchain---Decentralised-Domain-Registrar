@@ -155,7 +155,7 @@ function formatDateTime(timestamp:any) {
       {/* Bell Button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative p-2 rounded hover:bg-[var(--foreground)]/10 transition"
+        className="relative p-2 rounded hover:bg-[var(--foreground)]/25 transition cursor-pointer"
       >
         <Bell className="w-6 h-6" />
         {notifications.length > 0 && (

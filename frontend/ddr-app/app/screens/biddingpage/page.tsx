@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   useAccount,
@@ -39,6 +39,15 @@ export default function BiddingPage() {
     () => keccak256(encodePacked(["string"], [domain])) as `0x${string}`,
     [domain]
   );
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   async function commit() {
     try {
