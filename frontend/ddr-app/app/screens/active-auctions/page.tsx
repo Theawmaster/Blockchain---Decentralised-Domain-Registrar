@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePublicClient } from "wagmi";
+import AppNav from "@/components/AppNav";
 
 export default function ActiveAuctionsPage() {
   const router = useRouter();
@@ -105,67 +106,58 @@ export default function ActiveAuctionsPage() {
 
 
   return (
-    <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-5xl w-full rounded-xl border shadow-md p-10 space-y-10
-        bg-[var(--background)] text-[var(--foreground)]">
+    <>
+      <AppNav/>
+      <div className="flex justify-center pt-16 px-4">
+        <div className="max-w-5xl w-full rounded-xl border shadow-md p-10 space-y-10
+          bg-[var(--background)] text-[var(--foreground)]">
+          {/* Header */}
+          <h1 className="text-3xl font-extrabold text-center">Active Auctions</h1>
 
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => router.push("/screens/homepage")}
-            className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <ThemeToggle />
+          <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[var(--card-bg)]">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-5 py-3 text-left font-semibold">Domain</th>
+                  <th className="px-5 py-3 text-left font-semibold">Phase</th>
+                  <th className="px-5 py-3 text-left font-semibold">Time Left</th>
+                  <th className="px-5 py-3 text-right font-semibold"></th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={4} className="text-center py-6 opacity-60">Loading...</td></tr>
+                ) : auctionData.length === 0 ? (
+                  <tr><td colSpan={4} className="text-center py-6 opacity-60">No live auctions.</td></tr>
+                ) : (
+                  auctionData.map((a, i) => {
+                    const phase = getPhase(a);
+                    return (
+                      <tr key={i} className="border-b border-[var(--border)]">
+                        <td className="px-5 py-3 font-medium">{a.domain}</td>
+                        <td className="px-5 py-3">{phase}</td>
+                        <td className="px-5 py-3">{timeLeft(a)}</td>
+                        <td className="px-5 py-3 text-right">
+                          <button
+                            onClick={() => handleClick(a)}
+                            className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800
+                            text-white transition cursor-pointer"
+                          >
+                            {getButtonText(phase)}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+
+            </table>
+          </div>
+
         </div>
-
-        <h1 className="text-3xl font-extrabold text-center">Active Auctions</h1>
-
-        <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-          <table className="min-w-full text-sm">
-            <thead className="bg-[var(--card-bg)]">
-              <tr className="border-b border-[var(--border)]">
-                <th className="px-5 py-3 text-left font-semibold">Domain</th>
-                <th className="px-5 py-3 text-left font-semibold">Phase</th>
-                <th className="px-5 py-3 text-left font-semibold">Time Left</th>
-                <th className="px-5 py-3 text-right font-semibold"></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={4} className="text-center py-6 opacity-60">Loading...</td></tr>
-              ) : auctionData.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-6 opacity-60">No live auctions.</td></tr>
-              ) : (
-                auctionData.map((a, i) => {
-                  const phase = getPhase(a);
-                  return (
-                    <tr key={i} className="border-b border-[var(--border)]">
-                      <td className="px-5 py-3 font-medium">{a.domain}</td>
-                      <td className="px-5 py-3">{phase}</td>
-                      <td className="px-5 py-3">{timeLeft(a)}</td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          onClick={() => handleClick(a)}
-                          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800
-                          text-white transition cursor-pointer"
-                        >
-                          {getButtonText(phase)}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-
-          </table>
-        </div>
-
       </div>
-    </div>
+    </>
   );
 }

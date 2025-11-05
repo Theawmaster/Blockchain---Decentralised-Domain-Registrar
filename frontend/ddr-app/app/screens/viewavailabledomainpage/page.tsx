@@ -7,6 +7,52 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked } from "viem";
 import { ArrowLeft } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppNav from "@/components/AppNav";
+
+/* -------------------- helpers -------------------- */
+const normalize = (s: string) => {
+  const x = s.trim().toLowerCase();
+  return x.endsWith(".ntu") ? x : x ? `${x}.ntu` : x;
+};
+
+const isValidDotNtu = (s: string) => {
+  const x = normalize(s);
+  // label must exist before ".ntu" and be [a-z0-9-] with no leading/trailing "--"
+  const label = x.replace(/\.ntu$/, "");
+  if (!label) return false;
+  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) return false;
+  if (/--/.test(label)) return false;
+  return x.endsWith(".ntu");
+};
+
+/* -------------------- modal -------------------- */
+function DomainErrorModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+      <div className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
+        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4">
+        <h2 className="text-lg font-semibold">Invalid Domain</h2>
+        <p className="opacity-80">
+          Please enter a valid <span className="font-semibold">.ntu</span> name
+          (letters, numbers, hyphens; no double hyphens).
+        </p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /* -------------------- helpers -------------------- */
 const normalize = (s: string) => {
@@ -183,7 +229,7 @@ export default function ViewAvailableDomainPage() {
           )}
         </div>
 
-        <hr className="border-[var(--border)]" />
+          <hr className="border-[var(--border)]" />
 
         <h2 className="text-lg font-semibold">Search Registered Domains</h2>
 
@@ -224,6 +270,6 @@ export default function ViewAvailableDomainPage() {
           Note: Active auctions appear on the <strong>Active Auctions</strong> page.
         </p>
       </div>
-    </div>
+    </> 
   );
 }

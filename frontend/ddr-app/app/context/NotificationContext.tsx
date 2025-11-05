@@ -33,12 +33,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [notifications]);
 
   const add = (message: string, type: Notification["type"] = "info") => {
-    setNotifications((prev) => [...prev, { message, type }]);
-  };
+  setNotifications((prev) => {
+    const exists = prev.some((n) => n.message === message);
+    if (exists) return prev; // skip duplicates
+    return [...prev, { message, type }];
+  });
+};
+
 
   const remove = (index: number) => {
-    setNotifications((prev) => prev.filter((_, i) => i !== index));
-  };
+  setNotifications((prev) => {
+    const updated = prev.filter((_, i) => i !== index);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); // immediate sync
+    return updated;
+  });
+};
 
   const clear = () => {
     setNotifications([]);
