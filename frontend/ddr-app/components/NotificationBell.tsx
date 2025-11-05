@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { Bell, X } from "lucide-react";
 import { usePublicClient } from "wagmi";
@@ -16,7 +16,9 @@ export default function NotificationBell() {
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
   const [auctionData, setAuctionData] = useState<any[]>([]);
   const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set());
-
+  const [finalizer, setFinalizer] = useState(false);
+  const shownAlerts = useRef(new Set());
+  const currentTime = Date.now();
   // ✅ Restore deleted messages from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(DELETED_KEY);
@@ -25,6 +27,18 @@ export default function NotificationBell() {
       setDeletedMessages(new Set(parsed));
     }
   }, []);
+
+  // Helper to format date as DD/MM/YYYY HH:mm:ss
+function formatDateTime(timestamp:any) {
+  const d = new Date(timestamp);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
 
   // Live clock tick
   useEffect(() => {
@@ -41,20 +55,39 @@ export default function NotificationBell() {
 
   // Handle notification updates
   useEffect(() => {
-    if (auctionData.length === 0) return;
+  if (auctionData.length === 0) return;
 
-    auctionData.forEach((a) => {
-      const phase = getPhase(a);
-      const message = `Auction ${a.domain} is in ${phase} phase.`;
+  auctionData.forEach((a) => {
+    const phase = getPhase(a);
+    let message = `Auction ${a.domain} is in ${phase} phase.`; // default
 
-      // skip if user deleted this message
-      if (deletedMessages.has(message)) return;
+    // Determine specific notification message
+    if (now < a.commitEnd && a.commitEnd - now <= 30 && phase === 'Commit') {
+      message = `⏳ Commit phase for ${a.domain} ending soon!`;
+    } 
+    else if (a.revealEnd - now <= 30 && phase === 'Reveal') {
+      message = `🕒 Reveal phase for ${a.domain} ending soon!`;
+    } 
+    else if (now > a.revealEnd && phase === 'Finalize' && !a.finalized) {
+      message = `✅ Finalization required for ${a.domain}`;
+    }
 
-      // skip if already exists
-      const exists = notifications.some((n) => n.message === message);
-      if (!exists) add(message);
-    });
-  }, [now, auctionData, deletedMessages]);
+    const deleted = Array.from(deletedMessages).some((msg) => msg.startsWith(message));
+    if (deleted) return;
+
+    // Skip if already exists (check without timestamp)
+    const exists = notifications.some((n) => n.message.startsWith(message));
+    if (exists) return;
+
+    // Add only if it's one of the three special messages
+    if (message.includes('⏳') || message.includes('🕒') || message.includes('✅')) {
+      const type = message.includes('✅') ? 'warning' : 'info';
+      const fullMessage = `${message} ${formatDateTime(currentTime).toLocaleString()}`;
+      add(fullMessage, type);
+    }
+  });
+}, [auctionData, now, deletedMessages, notifications]);
+
 
   // Fetch full auction info
   useEffect(() => {
@@ -70,12 +103,16 @@ export default function NotificationBell() {
             args: [h],
           });
 
-          const [domain, commitEnd, revealEnd] = info as [string, bigint, bigint];
+          const [domain, commitEnd, revealEnd, finalized, highestBidder, highestBid] = info as [string, bigint, bigint, boolean, string, bigint];
+
           return {
             namehash: h,
             domain,
             commitEnd: Number(commitEnd),
             revealEnd: Number(revealEnd),
+            finalized: Boolean(finalized),
+            highestBidder: String(highestBidder),
+            highestBid: Number(highestBid),
           };
         })
       );
@@ -151,22 +188,19 @@ export default function NotificationBell() {
             notifications.map((n, index) => (
               <div
                 key={index}
-                className="
-                  px-4 py-3 border-b border-[var(--border)]
-                  justify-between items-center gap-3
-                "
+                className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1"
               >
-                <p className="flex-1 text-sm leading-snug break-words">
+                <p className="text-sm leading-snug break-words text-left w-full">
                   {n.message}
                 </p>
                 <button
                   onClick={() => {
                     const msg = n.message;
-                    setDeletedMessages((prev) => new Set([...prev, msg])); // ✅ persist deletion
+                    setDeletedMessages((prev) => new Set([...prev, msg]));
                     remove(index);
                   }}
                   className="
-                    shrink-0 opacity-60 hover:opacity-100 transition p-1
+                    opacity-60 hover:opacity-100 transition p-1
                     hover:bg-[var(--foreground)]/10 rounded
                   "
                 >
