@@ -36,6 +36,16 @@ export default function ActiveAuctionsPage() {
     functionName: "getActiveAuctions",
   });
 
+    // prevent Back button navigation
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+    }, []);
+
   // fetch full domain/timing info for each active hash
   useEffect(() => {
     async function load() {

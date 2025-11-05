@@ -19,8 +19,8 @@ async function main() {
   const RESERVE_PRICE = ethers.parseEther("0.01"); // 0.01 ETH
 
   // Timings (seconds)
-  const COMMIT_DURATION = 60n * 3n;   // 3 minutes commit phase
-  const REVEAL_DURATION = 60n * 3n;   // 3 minutes reveal phase
+  const COMMIT_DURATION = 60n * 1n;   // 1 minutes commit phase
+  const REVEAL_DURATION = 60n * 1n;   // 1 minutes reveal phase
 
   // Domain ownership expiry (example: 1 year)
   const DEFAULT_EXPIRY = 365n * 24n * 60n * 60n; // 1 year
