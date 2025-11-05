@@ -196,9 +196,15 @@ export default function HomePage() {
                 <Wallet className="w-8 h-8 opacity-80" />
                 <div>
                   <p className="text-sm opacity-60">Connected Wallet</p>
-                  <p className="font-semibold break-all text-sm sm:text-base">
-                    {address}
-                  </p>
+                  {address ? (
+                    <p className="font-semibold break-all text-sm sm:text-base">
+                      {address}
+                    </p>
+                  ) : (
+                    <p className="font-semibold break-all text-sm sm:text-base">
+                      —
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
