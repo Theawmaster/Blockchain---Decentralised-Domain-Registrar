@@ -17,51 +17,6 @@ const normalize = (s: string) => {
 
 const isValidDotNtu = (s: string) => {
   const x = normalize(s);
-  // label must exist before ".ntu" and be [a-z0-9-] with no leading/trailing "--"
-  const label = x.replace(/\.ntu$/, "");
-  if (!label) return false;
-  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) return false;
-  if (/--/.test(label)) return false;
-  return x.endsWith(".ntu");
-};
-
-/* -------------------- modal -------------------- */
-function DomainErrorModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
-        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4">
-        <h2 className="text-lg font-semibold">Invalid Domain</h2>
-        <p className="opacity-80">
-          Please enter a valid <span className="font-semibold">.ntu</span> name
-          (letters, numbers, hyphens; no double hyphens).
-        </p>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition"
-        >
-          Got it
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- helpers -------------------- */
-const normalize = (s: string) => {
-  const x = s.trim().toLowerCase();
-  return x.endsWith(".ntu") ? x : x ? `${x}.ntu` : x;
-};
-
-const isValidDotNtu = (s: string) => {
-  const x = normalize(s);
   const label = x.replace(/\.ntu$/, "");
   if (!label) return false;
   if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) return false;
@@ -74,11 +29,14 @@ function DomainErrorModal({ open, onClose }: { open: boolean; onClose: () => voi
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-[var(--card-bg)] border border-[var(--border)]
-        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4">
+      <div
+        className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
+        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4"
+      >
         <h2 className="text-lg font-semibold">Invalid Domain</h2>
         <p className="opacity-80">
-          Please enter a valid <span className="font-semibold">.ntu</span> name.
+          Please enter a valid <span className="font-semibold">.ntu</span> name (letters, numbers, hyphens; no double
+          hyphens).
         </p>
         <button
           onClick={onClose}
@@ -95,8 +53,10 @@ function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => voi
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-[var(--card-bg)] border border-[var(--border)]
-        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4">
+      <div
+        className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
+        rounded-xl shadow-xl p-6 w-[360px] text-center space-y-4"
+      >
         <h2 className="text-lg font-semibold">Domain Already Registered</h2>
         <p className="opacity-80">
           This domain is already owned. You can only start auctions for <strong>unregistered</strong> domains.
@@ -112,7 +72,7 @@ function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
-/* -------------------- page -------------------- */
+/* -------------------- main page -------------------- */
 export default function ViewAvailableDomainPage() {
   const router = useRouter();
   const publicClient = usePublicClient();
@@ -167,7 +127,7 @@ export default function ViewAvailableDomainPage() {
         return;
       }
     } catch {
-      // ignore — treat as available
+      // treat as available
     }
 
     router.push(`/screens/startauction?name=${encodeURIComponent(name)}`);
@@ -178,27 +138,20 @@ export default function ViewAvailableDomainPage() {
   }
 
   return (
+    <>
+    <AppNav/>
     <div className="flex justify-center pt-16 px-4">
       <DomainErrorModal open={showError} onClose={() => setShowError(false)} />
       <DomainTakenModal open={showTakenModal} onClose={() => setShowTakenModal(false)} />
 
-      <div className="max-w-5xl w-full rounded-xl border shadow-md
-        bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push("/screens/homepage")}
-            className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <ThemeToggle />
-        </div>
+      <div
+        className="max-w-5xl w-full rounded-xl border shadow-md
+        bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10"
+      >
 
         <h1 className="text-3xl font-extrabold text-center">Domain Auctions</h1>
 
+        {/* Start a New Domain Auction */}
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Start a New Domain Auction</h2>
 
@@ -229,8 +182,9 @@ export default function ViewAvailableDomainPage() {
           )}
         </div>
 
-          <hr className="border-[var(--border)]" />
+        <hr className="border-[var(--border)]" />
 
+        {/* Search Registered Domains */}
         <h2 className="text-lg font-semibold">Search Registered Domains</h2>
 
         <input
@@ -251,16 +205,23 @@ export default function ViewAvailableDomainPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td className="px-5 py-6 opacity-60">Loading…</td></tr>
+                <tr>
+                  <td className="px-5 py-6 opacity-60">Loading…</td>
+                </tr>
               ) : filtered.length ? (
                 filtered.map((name, idx) => (
-                  <tr key={idx} className="border-b border-[var(--border)]
-                    hover:bg-[var(--foreground)]/10 transition">
+                  <tr
+                    key={idx}
+                    className="border-b border-[var(--border)]
+                    hover:bg-[var(--foreground)]/10 transition"
+                  >
                     <td className="px-5 py-3 font-medium">{name}</td>
                   </tr>
                 ))
               ) : (
-                <tr><td className="px-5 py-6 opacity-60">No domains found.</td></tr>
+                <tr>
+                  <td className="px-5 py-6 opacity-60">No domains found.</td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -270,6 +231,7 @@ export default function ViewAvailableDomainPage() {
           Note: Active auctions appear on the <strong>Active Auctions</strong> page.
         </p>
       </div>
-    </> 
+    </div>
+    </>
   );
 }
