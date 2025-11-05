@@ -19,7 +19,6 @@ export default function HomePage() {
   const [refunds, setRefunds] = useState<any[]>([]);
   const chainId = useChainId();
 
-
   const { data: activeAuctions } = useReadContract({
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
@@ -51,12 +50,10 @@ export default function HomePage() {
         const namehash = keccak256(encodePacked(["string"], [name])) as `0x${string}`;
 
         const owner = (await publicClient.readContract({
-        const owner = (await publicClient.readContract({
           address: CONTRACTS.registry.address,
           abi: CONTRACTS.registry.abi,
           functionName: "ownerOf",
           args: [namehash],
-        })) as `0x${string}`;
         })) as `0x${string}`;
 
         if (owner.toLowerCase() === address.toLowerCase()) {
@@ -87,21 +84,7 @@ export default function HomePage() {
         const namehash = keccak256(encodePacked(["string"], [item.domain]));
 
         const [finalized, deposit] = await Promise.all([
-    if (!address || !publicClient) return;
-
-    (async () => {
-      const stored = listBids(chainId, address);
-      const out = [];
-
-      for (let item of stored) {
-        const namehash = keccak256(encodePacked(["string"], [item.domain]));
-
-        const [finalized, deposit] = await Promise.all([
           publicClient.readContract({
-            address: CONTRACTS.auctionHouse.address,
-            abi: CONTRACTS.auctionHouse.abi,
-            functionName: "isFinalized",
-            args: [namehash],
             address: CONTRACTS.auctionHouse.address,
             abi: CONTRACTS.auctionHouse.abi,
             functionName: "isFinalized",
@@ -112,21 +95,7 @@ export default function HomePage() {
             abi: CONTRACTS.auctionHouse.abi,
             functionName: "getDeposit",
             args: [namehash, address],
-            address: CONTRACTS.auctionHouse.address,
-            abi: CONTRACTS.auctionHouse.abi,
-            functionName: "getDeposit",
-            args: [namehash, address],
           }) as Promise<bigint>,
-        ]);
-
-        if (finalized && deposit > 0n) {
-          out.push({ domain: item.domain, namehash, deposit });
-        }
-      }
-
-      setRefunds(out);
-    })();
-  }, [address, chainId, publicClient]);
         ]);
 
         if (finalized && deposit > 0n) {
@@ -153,16 +122,8 @@ export default function HomePage() {
           <div className="rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
             <h1 className="text-2xl font-extrabold text-center">My Domain Dashboard</h1>
 
-
-          {/* Header */}
-          <div className="rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
-            <h1 className="text-2xl font-extrabold text-center">My Domain Dashboard</h1>
-
             {/* Wallet Info */}
             <div
-              className="border rounded-lg p-5 flex items-center justify-between
-              transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]
-              hover:bg-gray-50 dark:hover:bg-gray-800/50"
               className="border rounded-lg p-5 flex items-center justify-between
               transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]
               hover:bg-gray-50 dark:hover:bg-gray-800/50"
@@ -173,10 +134,8 @@ export default function HomePage() {
                   <p className="text-sm opacity-60">Connected Wallet</p>
                   <p className="font-semibold break-all text-sm sm:text-base">
                     {address}
-                    {address}
                   </p>
                 </div>
-              </div>
               </div>
             </div>
           </div>
@@ -204,9 +163,6 @@ export default function HomePage() {
 
           {/* Owned Domains & Refunds */}
           <div className="grid grid-cols-2 gap-6">
-
-          {/* Owned Domains & Refunds */}
-          <div className="grid grid-cols-2 gap-6">
             {/* Owned Domains */}
             <div className="border rounded-lg p-6 transition-all duration-200
               hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -222,8 +178,6 @@ export default function HomePage() {
 
                     
                   </div>
-                ))
-              )}
                 ))
               )}
             </div>
