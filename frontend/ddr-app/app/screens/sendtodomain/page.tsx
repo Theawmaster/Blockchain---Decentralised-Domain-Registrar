@@ -6,6 +6,7 @@ import { parseEther } from "viem";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
+import AppNav from "@/components/AppNav";
 
 export default function SendToDomainPage() {
   const router = useRouter();
@@ -77,20 +78,10 @@ export default function SendToDomainPage() {
 
   return (
     <>
-
+    <AppNav/>
       <div className="max-w-lg mx-auto space-y-6 p-6 text-[var(--foreground)]">
 
-        {/* Header & Back */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => router.push("/screens/homepage")}
-            className="px-4 py-2 rounded-lg border border-[var(--border)]
-            hover:bg-[var(--foreground)]/10 transition flex items-center gap-2 cursor-pointer"
-          >
-            ← Back
-          </button>
-          <ThemeToggle />
-        </div>
+        
 
         <h1 className="text-2xl font-bold text-center">Send ETH to Domain</h1>
 

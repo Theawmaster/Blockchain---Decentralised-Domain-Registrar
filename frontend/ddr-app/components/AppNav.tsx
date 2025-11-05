@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,8 +12,15 @@ export default function AppNav() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  // Wait until mounted to render client-dependent UI
+  if (!mounted) return null;
 
   const masked = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -33,7 +40,6 @@ export default function AppNav() {
         D-Domain
       </Link>
 
-      {/* Nav Links */}
       <div className="flex gap-4 text-sm">
         <NavLink href="/screens/viewavailabledomainpage" label="Register Domain" />
         <NavLink href="/screens/viewregistereddomainpage" label="Owned Domain" />
@@ -41,17 +47,11 @@ export default function AppNav() {
         <NavLink href="/screens/viewwalletdetailpage" label="My Wallet" />
       </div>
 
-      {/* Push right */}
       <div className="flex-1" />
 
-      {/* Notification to be implemented */}
-      {/* <div className="flex-1" />
-      <NotificationBell /> */}
-
-      {/* Theme Toggle */}
+      <NotificationBell />
       <ThemeToggle />
 
-      {/* Wallet Badge */}
       {isConnected && (
         <button
           onClick={() => setOpen(!open)}
@@ -66,7 +66,6 @@ export default function AppNav() {
         </button>
       )}
 
-      {/* Wallet Dropdown */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -82,41 +81,45 @@ export default function AppNav() {
             "
           >
             <button
-              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
-              onClick={() => navigator.clipboard.writeText(address!)}
-            >
-              📋 Copy Address
-            </button>
+  onClick={() => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(address!);
+      alert("Address copied!");
+    } else {
+      console.warn("Clipboard API not available");
+      alert("Clipboard not supported in this environment.");
+    }
+  }}
+  className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
+>
+  📋 Copy Address
+</button>
 
             <button
-              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
               onClick={() => router.push("/screens/viewwalletdetailpage")}
+              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
             >
               👛 Wallet Details
             </button>
-
             <button
-              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
               onClick={() => router.push("/screens/refund")}
+              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
             >
               ♺ Refund
             </button>
-
-             <button
-              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
+            <button
               onClick={() => router.push("/screens/sendtodomain")}
+              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
             >
               ✉️ Transfer Funds
             </button>
-
             <hr className="border-[var(--border)]" />
-
             <button
-              className="hover:bg-red-600 hover:text-white rounded px-3 py-2 text-left transition cursor-pointer"
               onClick={() => {
                 setOpen(false);
                 setShowLogoutModal(true);
               }}
+              className="hover:bg-red-600 hover:text-white rounded px-3 py-2 text-left transition cursor-pointer"
             >
               🚪 Logout
             </button>
@@ -124,7 +127,6 @@ export default function AppNav() {
         )}
       </AnimatePresence>
 
-      {/* Logout Modal */}
       <AnimatePresence>
         {showLogoutModal && (
           <motion.div
@@ -144,7 +146,6 @@ export default function AppNav() {
               <p className="text-sm opacity-70">
                 Are you sure you want to logout?
               </p>
-
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => setShowLogoutModal(false)}
@@ -152,7 +153,6 @@ export default function AppNav() {
                 >
                   Cancel
                 </button>
-
                 <button
                   onClick={() => {
                     router.push("/screens/authpage");
@@ -186,4 +186,3 @@ function NavLink({ href, label }: { href: string; label: string }) {
     </Link>
   );
 }
-

@@ -14,6 +14,7 @@ import { parseEther, keccak256, encodePacked } from "viem";
 import { upsertBid } from "@/app/lib/bids";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import AppNav from "@/components/AppNav";
 
 export default function BiddingPage() {
   const params = useSearchParams();
