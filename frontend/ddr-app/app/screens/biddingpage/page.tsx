@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   useAccount,
@@ -14,6 +14,7 @@ import { parseEther, keccak256, encodePacked } from "viem";
 import { upsertBid } from "@/app/lib/bids";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import AppNav from "@/components/AppNav";
 
 export default function BiddingPage() {
   const params = useSearchParams();
@@ -38,6 +39,15 @@ export default function BiddingPage() {
     () => keccak256(encodePacked(["string"], [domain])) as `0x${string}`,
     [domain]
   );
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   async function commit() {
     try {

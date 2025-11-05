@@ -78,7 +78,7 @@ export default function SendTransaction() {
                     </Link>
                     <br />
                     <Link
-                        href={`/dashboard`}
+                        href={`/homepage`}
                         className="underline text-purple-600"
                     >
                         Go to Dashboard

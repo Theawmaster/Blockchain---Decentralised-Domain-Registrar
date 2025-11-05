@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useNotifications } from "@/app/context/NotificationContext";
 import {
   useAccount,
   usePublicClient,
@@ -50,7 +51,7 @@ export default function FinalizeAuctionPage() {
   const router = useRouter();
   const params = useSearchParams();
   const domain = (params.get("name") || "").toLowerCase().trim();
-
+  const currentTime = Date.now();
   const namehash = useMemo(
     () => domain ? keccak256(encodePacked(["string"], [domain])) as `0x${string}` : undefined,
     [domain]
@@ -59,7 +60,7 @@ export default function FinalizeAuctionPage() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync, isPending } = useWriteContract();
-
+  const { notifications, remove, add } = useNotifications();
   const [gasEth, setGasEth] = useState("-");
   const [modal, setModal] = useState({ open: false, title: "", message: "", onClose: () => {} });
 
@@ -126,13 +127,19 @@ export default function FinalizeAuctionPage() {
         functionName: "finalizeAuction",
         args: [domain],
       });
-
+      if(highestBidder !== "0x0000000000000000000000000000000000000000"){
+            add(`🎉 ${domain} has been registered! ${new Date(currentTime).toLocaleString()}`, "success");
+          }
+          else{
+            add(`⚠️ ${domain} expired with no valid bids ${new Date(currentTime).toLocaleString()}`, "warning");
+          }
       setModal({
         open: true,
         title: "Auction Finalized ✅",
         message: `The winner for "${domain}" has been registered.\nThey now own the .ntu domain.`,
         onClose: () => router.push("/screens/homepage"),
       });
+      
     } catch (err: any) {
       setModal({
         open: true,
@@ -142,6 +149,17 @@ export default function FinalizeAuctionPage() {
       });
     }
   }
+
+  /* Prevent user going back */
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+    }, []);
 
   return (
     <div className="flex justify-center pt-16 px-4">

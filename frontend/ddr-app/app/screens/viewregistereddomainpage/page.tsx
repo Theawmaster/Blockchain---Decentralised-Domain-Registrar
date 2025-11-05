@@ -6,7 +6,7 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked, isAddress } from "viem";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useRouter } from "next/navigation";
-
+import AppNav from "@/components/AppNav";
 export default function ViewRegisteredDomainPage() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -101,17 +101,17 @@ export default function ViewRegisteredDomainPage() {
         setResultModal({ ok: true, message: `✅ Resolve updated to ${input}` });
       }
 
-      if (mode === "transfer") {
-        await writeContractAsync({
-          address: CONTRACTS.registry.address,
-          abi: CONTRACTS.registry.abi,
-          functionName: "transferDomain",
-          args: [selected.name, input],
-        });
+      // if (mode === "transfer") {
+      //   await writeContractAsync({
+      //     address: CONTRACTS.registry.address,
+      //     abi: CONTRACTS.registry.abi,
+      //     functionName: "transferDomain",
+      //     args: [selected.name, input],
+      //   });
 
-        setDomains(domains.filter((d) => d.name !== selected.name));
-        setResultModal({ ok: true, message: `✅ Ownership transferred to ${input}` });
-      }
+      //   setDomains(domains.filter((d) => d.name !== selected.name));
+      //   setResultModal({ ok: true, message: `✅ Ownership transferred to ${input}` });
+      // }
 
     } catch (err: any) {
       setResultModal({
@@ -134,24 +134,30 @@ export default function ViewRegisteredDomainPage() {
     setMode(null);
   }
 
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
+
 return (
-  <div className="max-w-3xl mx-auto pt-16 px-4 space-y-8 text-[var(--foreground)]">
-
+  <>
+  <AppNav/>
+  <div className="flex justify-center pt-16 px-4">
     {/* Top Row */}
-    <div className="flex justify-between items-center">
-      <button
-        onClick={() => router.push("/screens/homepage")}
-        className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-[var(--foreground)]/10 cursor-pointer"
+    <div
+        className="max-w-5xl w-full rounded-xl border shadow-md
+        bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10 "
       >
-        ← Back
-      </button>
+        <h1 className="text-3xl font-extrabold text-center">My Owned Domains</h1>
 
-      <h1 className="text-3xl font-bold">My Owned Domains</h1>
+      
 
-      <ThemeToggle />
-    </div>
-
-    {!loaded && <p className="opacity-60">Loading...</p>}
+      {!loaded && <p className="opacity-60">Loading...</p>}
 
     {loaded && domains.length === 0 && (
       <p className="opacity-60 text-center">You don’t own any domains yet.</p>
@@ -181,12 +187,12 @@ return (
               {hasResolve ? "Already Resolved" : "Set Resolve"}
             </button>
 
-            <button
+            {/* <button
               onClick={() => openModal(d, "transfer")}
               className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm cursor-pointer transition"
             >
               Transfer Owner
-            </button>
+            </button> */}
           </div>
         </div>
       );
@@ -231,6 +237,8 @@ return (
       </div>
     )}
   </div>
+  </div>
+  </>
 );
 
 }
