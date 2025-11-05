@@ -9,7 +9,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import AppNav from "@/components/AppNav";
 
 export default function RefundPage() {
   const { address } = useAccount();
@@ -67,33 +66,38 @@ export default function RefundPage() {
   }
 
   return (
-    <>
-      <AppNav/>
-      <div className="flex justify-center pt-16 px-4">
-        <div className="max-w-xl w-full rounded-xl border bg-[var(--background)] text-[var(--foreground)] shadow-md p-8 space-y-6">
+    <div className="flex justify-center pt-16 px-4">
+      <div className="max-w-xl w-full rounded-xl border bg-[var(--background)] text-[var(--foreground)] shadow-md p-8 space-y-6">
 
-          <h1 className="text-2xl font-extrabold text-center">Withdraw Refunds</h1>
-
-          {refunds.length === 0 ? (
-            <p className="text-center opacity-60">No refundable deposits.</p>
-          ) : (
-            refunds.map((r) => (
-              <div key={r.domain} className="border px-4 py-3 rounded-lg flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{r.domain}</p>
-                  <p className="text-sm opacity-70">{formatEther(r.deposit)} ETH</p>
-                </div>
-                <button
-                  onClick={() => handleWithdraw(r)}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-                >
-                  Withdraw
-                </button>
-              </div>
-            ))
-          )}
+        <div className="flex items-center justify-between">
+          <button onClick={() => router.push("/screens/homepage")} className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-[var(--foreground)]/10 cursor-pointer">
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <ThemeToggle />
         </div>
+
+        <h1 className="text-2xl font-bold text-center">Withdraw Refunds</h1>
+
+        {refunds.length === 0 ? (
+          <p className="text-center opacity-60">No refundable deposits.</p>
+        ) : (
+          refunds.map((r) => (
+            <div key={r.domain} className="border px-4 py-3 rounded-lg flex items-center justify-between">
+              <div>
+                <p className="font-semibold">{r.domain}</p>
+                <p className="text-sm opacity-70">{formatEther(r.deposit)} ETH</p>
+              </div>
+              <button
+                onClick={() => handleWithdraw(r)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+              >
+                Withdraw
+              </button>
+            </div>
+          ))
+        )}
       </div>
-    </>
+    </div>
   );
 }

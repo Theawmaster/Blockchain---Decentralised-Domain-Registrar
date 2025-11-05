@@ -3,14 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { Bell, X } from "lucide-react";
-import { usePublicClient } from "wagmi";
-import { CONTRACTS } from "@/lib/web3/contract";
-import { useReadContract } from "wagmi";
-
-const DELETED_KEY = "ddr-deleted-notifications"; // ✅ key for deleted messages
 
 export default function NotificationBell() {
-  const { notifications, remove, add } = useNotifications();
+  const { notifications, remove } = useNotifications();
   const [open, setOpen] = useState(false);
   const publicClient = usePublicClient();
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
@@ -150,7 +145,6 @@ function formatDateTime(timestamp:any) {
     return "—";
   }
   return (
-    
     <div className="relative">
       {/* Bell Button */}
       <button
@@ -158,6 +152,7 @@ function formatDateTime(timestamp:any) {
         className="relative p-2 rounded hover:bg-[var(--foreground)]/10 transition"
       >
         <Bell className="w-6 h-6" />
+
         {notifications.length > 0 && (
           <span
             className="

@@ -8,7 +8,6 @@ import { keccak256, encodePacked, formatEther } from "viem";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
-import AppNav from "@/components/AppNav";
 
 type AuctionInfo = [
   string,
@@ -69,46 +68,44 @@ export default function RevealPage() {
   }
 
   return (
-    <>
-      <AppNav/>
-      <div className="flex justify-center pt-16 px-4">
-        <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-          text-[var(--foreground)] p-10 space-y-8">
+    <div className="flex justify-center pt-16 px-4">
+      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8">
 
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <button
-              onClick={() => router.push("/screens/active-auctions")}
-              className="px-4 py-2 rounded-lg border border-[var(--border)]
-              hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>        
-          </div>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-[var(--foreground)]/10 flex items-center gap-2 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <ThemeToggle />
+        </div>
 
-          <h1 className="text-2xl font-bold text-center">Reveal Your Bid</h1>
+        <h1 className="text-2xl font-bold text-center">Reveal Your Bid</h1>
 
-          {pending.length === 0 && (
-            <p className="opacity-60 text-center">No bids available to reveal.</p>
-          )}
+        {pending.length === 0 && (
+          <p className="opacity-60 text-center">No bids available to reveal.</p>
+        )}
 
-          <div className="space-y-4">
-            {pending.map((item) => (
-              <div key={item.domain} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]">
-                <p className="font-semibold">{item.domain}</p>
-                <p className="text-sm opacity-70">Your Bid: {formatEther(BigInt(item.bidWei))} ETH</p>
+        <div className="space-y-4">
+          {pending.map((item) => (
+            <div key={item.domain} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]">
+              <p className="font-semibold">{item.domain}</p>
+              <p className="text-sm opacity-70">Your Bid: {formatEther(BigInt(item.bidWei))} ETH</p>
 
-                <button
-                  onClick={() => reveal(item)}
-                  className="mt-3 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition cursor-pointer"
-                >
-                  Reveal Bid
-                </button>
-              </div>
-            ))}
-          </div>
+              <button
+                onClick={() => reveal(item)}
+                className="mt-3 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition cursor-pointer"
+              >
+                Reveal Bid
+              </button>
+            </div>
+          ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -57,14 +57,16 @@ export default function ViewWalletDetailPage() {
               </div>
               </div>
 
-              <button
-              onClick={handleCopy}
-              className="px-3 py-2 rounded-md text-sm border transition-all duration-200
-              hover:bg-gray-100 dark:hover:bg-gray-300 hover:shadow-sm active:scale-95 cursor-pointer"
-              >
-              <Copy className="w-4 h-4" />
-              </button>
-          </div>
+        {/* Back & Theme */}
+        <div className="w-full max-w-3xl flex justify-between items-center mb-6">
+        <button
+            onClick={() => router.push("/screens/homepage")}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)]
+            hover:bg-gray-100 dark:hover:bg-gray-300 transition-colors cursor-pointer"
+        >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+        </button>
 
           {/* Balance */}
           <div
