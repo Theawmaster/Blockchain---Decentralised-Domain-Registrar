@@ -127,18 +127,25 @@ export default function FinalizeAuctionPage() {
         functionName: "finalizeAuction",
         args: [domain],
       });
-      if(highestBidder !== "0x0000000000000000000000000000000000000000"){
-            add(`🎉 ${domain} has been registered! ${new Date(currentTime).toLocaleString()}`, "success");
-          }
-          else{
-            add(`⚠️ ${domain} expired with no valid bids ${new Date(currentTime).toLocaleString()}`, "warning");
-          }
-      setModal({
-        open: true,
-        title: "Auction Finalized ✅",
-        message: `The winner for "${domain}" has been registered.\nThey now own the .ntu domain.`,
-        onClose: () => router.push("/screens/homepage"),
-      });
+
+      const noWinner = highestBidder === "0x0000000000000000000000000000000000000000";
+
+       // Push a notification (optional)
+        if (noWinner) {
+            add(`⚠️ ${domain} expired with no valid bids - domain remains unregistered.`, "warning");
+        } else {
+            add(`🎉 ${domain} has been registered!`, "success");
+        }
+
+        // Show different modal based on result
+        setModal({
+            open: true,
+            title: noWinner ? "No Valid Bids ⚠️" : "Auction Finalized ✅",
+            message: noWinner
+            ? `No bids were successfully revealed for "${domain}".\n\nThe domain remains unregistered and can be re-auctioned again.`
+            : `The winner for "${domain}" has been registered.\nThey now own the .ntu domain.`,
+            onClose: () => router.push("/screens/homepage"),
+        });
       
     } catch (err: any) {
       setModal({

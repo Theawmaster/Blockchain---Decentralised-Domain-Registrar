@@ -106,6 +106,15 @@ export default function ViewAvailableDomainPage() {
   }, []);
 
   useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
+  useEffect(() => {
     const t = setTimeout(async () => {
       const term = search.trim().toLowerCase();
       setDebounced(term);
