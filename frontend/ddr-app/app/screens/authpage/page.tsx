@@ -13,14 +13,14 @@ export default function AuthPage() {
   const [hasMetaMask, setHasMetaMask] = useState(true);
   const [isCorrectBrowser, setIsCorrectBrowser] = useState(true);
 
-  // useEffect(() => {
-  //   // Browser check
-  //   const ua = navigator.userAgent.toLowerCase();
-  //   setIsCorrectBrowser(ua.includes("chrome") || ua.includes("brave") || ua.includes("chromium"));
+  useEffect(() => {
+    // Browser check
+    const ua = navigator.userAgent.toLowerCase();
+    setIsCorrectBrowser(ua.includes("chrome") || ua.includes("brave") || ua.includes("chromium"));
 
-  //   // Wallet check
-  //   setHasMetaMask(typeof window !== "undefined" && (window as any).ethereum);
-  // }, []);
+    // Wallet check
+    setHasMetaMask(typeof window !== "undefined" && (window as any).ethereum);
+  }, []);
 
   if (isConnected) redirect("/screens/homepage", RedirectType.push);
 

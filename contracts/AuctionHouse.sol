@@ -216,10 +216,10 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     // ------------------------------- Finalization ------------------------------
 
     function finalizeAuction(string calldata name)
-        external
-        override
-        nonReentrant
-        whenNotPaused
+    external
+    override
+    nonReentrant
+    whenNotPaused
     {
         if (!_endsWithNTU(name)) revert InvalidDomainSuffix();
         bytes32 namehash = keccak256(abi.encodePacked(name));
@@ -234,20 +234,30 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         address winner = _highestBidder[namehash];
         uint256 winBid = _highestBid[namehash];
 
-        if (winner != address(0)) {
-            // Ensure domain string is recorded for UIs; register FULL domain (e.g., "ivan.ntu")
-            if (bytes(_domainOf[namehash]).length == 0) _domainOf[namehash] = name;
-            registry.register(name, winner);
-
-            // winner deposit -> proceeds
-            uint256 winnerDeposit = _deposits[namehash][winner];
-            if (winnerDeposit > 0) {
-                _deposits[namehash][winner] = 0;
-                _proceeds += winnerDeposit;
-            }
-
-            expiration[namehash] = block.timestamp + defaultExpiry;
+        // ✅ NEW: If no valid reveal → reset auction and exit
+        if (winner == address(0)) {
+            _commitEnd[namehash] = 0;
+            _revealEnd[namehash] = 0;
+            _finalized[namehash] = false;
+            _highestBid[namehash] = 0;
+            _highestBidder[namehash] = address(0);
+            _deposits[namehash][msg.sender] = 0; // optional cleanup
+            _deactivate(namehash);
+            emit AuctionFinalized(namehash, address(0), 0);
+            return;
         }
+
+        // ✅ Existing winner logic
+        if (bytes(_domainOf[namehash]).length == 0) _domainOf[namehash] = name;
+        registry.register(name, winner);
+
+        uint256 winnerDeposit = _deposits[namehash][winner];
+        if (winnerDeposit > 0) {
+            _deposits[namehash][winner] = 0;
+            _proceeds += winnerDeposit;
+        }
+
+        expiration[namehash] = block.timestamp + defaultExpiry;
 
         _deactivate(namehash);
         emit AuctionFinalized(namehash, winner, winBid);
