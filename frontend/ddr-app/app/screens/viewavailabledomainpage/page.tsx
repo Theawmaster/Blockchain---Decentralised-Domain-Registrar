@@ -165,29 +165,37 @@ export default function ViewAvailableDomainPage() {
   const normalized = normalize(rawInput);
 
   async function startAuction() {
-    if (!canStart) {
-      setShowError(true);
-      return;
-    }
+  if (!canStart) {
+    setShowError(true);
+    return;
+  }
 
-    const name = normalize(rawInput);
-    const namehash = keccak256(encodePacked(["string"], [name]));
+  const name = normalize(rawInput);
+  const namehash = keccak256(encodePacked(["string"], [name]));
 
-    try {
-      const owner = await publicClient?.readContract({
-        address: CONTRACTS.registry.address,
-        abi: CONTRACTS.registry.abi,
-        functionName: "resolve",
-        args: [name],
-      });
+  try {
+    const allNames = await publicClient?.readContract({
+      address: CONTRACTS.registry.address,
+      abi: CONTRACTS.registry.abi,
+      functionName: "getAllNames",
+      args: [], // ✅ Usually getAllNames() takes no arguments
+    });
 
-      if (owner && owner !== "0x0000000000000000000000000000000000000000") {
+    if (allNames && Array.isArray(allNames)) {
+      // Compare normalized names (case-insensitive check)
+      const nameExists = allNames.some(
+        (n) => n.toLowerCase() === name.toLowerCase()
+      );
+
+      if (nameExists) {
         setShowTakenModal(true);
         return;
       }
-    } catch {
-      // treat as available
     }
+  } catch (error) {
+    console.error("Error checking names:", error);
+    // Treat as available if call fails
+  }
 
     router.push(`/screens/startauction?name=${encodeURIComponent(name)}`);
   }
