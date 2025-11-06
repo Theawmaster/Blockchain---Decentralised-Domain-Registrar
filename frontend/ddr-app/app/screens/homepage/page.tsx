@@ -84,7 +84,9 @@ export default function HomePage() {
 
           let expiryDate = null;
           if (expiry > 0n) {
-            expiryDate = new Date(Number(expiry) * 1000).toLocaleDateString();
+            expiryDate = new Date(Number(expiry) * 1000).toLocaleDateString(
+              "en-GB"
+            );
           }
 
           owned.push({ name, namehash, resolve, expiryDate });
