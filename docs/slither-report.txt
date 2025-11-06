@@ -1,0 +1,25 @@
+INFO:Printers:
+Compiled with Builder
+Total number of contracts in source files: 5
+Number of contracts in dependencies: 9
+Source lines of code (SLOC) in source files: 377
+Source lines of code (SLOC) in dependencies: 1161
+Number of  assembly lines: 0
+Number of optimization issues: 2
+Number of informational issues: 2
+Number of low issues: 7
+Number of medium issues: 5
+Number of high issues: 0
+
+
+Use: Openzeppelin-Ownable
+
++--------------+-------------+------+------------+--------------+-------------+
+| Name         | # functions | ERCS | ERC20 info | Complex code | Features    |
++--------------+-------------+------+------------+--------------+-------------+
+| AuctionHouse | 50          |      |            | Yes          | Receive ETH |
+|              |             |      |            |              | Send ETH    |
+| NameToken    | 1           |      |            | No           |             |
+| Registry     | 27          |      |            | No           |             |
++--------------+-------------+------+------------+--------------+-------------+
+INFO:Slither:. analyzed (14 contracts)
