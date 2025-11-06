@@ -84,7 +84,7 @@ export default function ViewAvailableDomainPage() {
 
   const [namesByOwner, setNamesByOwner] = useState<string[]>([]);
   const [loadingNames, setLoadingNames] = useState(false);
-
+  
   const { data: allNames, isLoading } = useReadContract({
     address: CONTRACTS.registry.address,
     abi: CONTRACTS.registry.abi,
@@ -129,7 +129,7 @@ export default function ViewAvailableDomainPage() {
     const result = await publicClient?.readContract({
       address: CONTRACTS.registry.address,
       abi: CONTRACTS.registry.abi,
-      functionName: "namesOfOwner",
+      functionName: "ownerOf",
       args: [address],
     });
 
@@ -169,8 +169,8 @@ export default function ViewAvailableDomainPage() {
       const owner = await publicClient?.readContract({
         address: CONTRACTS.registry.address,
         abi: CONTRACTS.registry.abi,
-        functionName: "ownerOf",
-        args: [namehash],
+        functionName: "resolve",
+        args: [name],
       });
 
       if (owner && owner !== "0x0000000000000000000000000000000000000000") {
@@ -189,17 +189,20 @@ export default function ViewAvailableDomainPage() {
   }
 
   async function fetchResolveStatus(domain: string) {
-    try {
-      await publicClient?.readContract({
+   
+      const resolve = await publicClient?.readContract({
         address: CONTRACTS.registry.address,
         abi: CONTRACTS.registry.abi,
         functionName: "resolve",
         args: [domain],
       });
-      setResolveStatus((prev) => ({ ...prev, [domain]: "Resolved" }));
-    } catch {
-      setResolveStatus((prev) => ({ ...prev, [domain]: "Not Resolved" }));
-    }
+      if(resolve !== "0x0000000000000000000000000000000000000000"){
+           setResolveStatus((prev) => ({ ...prev, [domain]: "Resolved" }));
+      }else{
+        setResolveStatus((prev) => ({ ...prev, [domain]: "Not Resolved" }));
+      }
+     
+    
   }
 
   useEffect(() => {
