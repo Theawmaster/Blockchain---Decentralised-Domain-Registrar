@@ -36,7 +36,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   setNotifications((prev) => {
     const exists = prev.some((n) => n.message === message);
     if (exists) return prev; // skip duplicates
-    return [...prev, { message, type }];
+    return [{ message, type }, ...prev];
   });
 };
 

@@ -84,7 +84,7 @@ export default function ViewAvailableDomainPage() {
 
   const [namesByOwner, setNamesByOwner] = useState<string[]>([]);
   const [loadingNames, setLoadingNames] = useState(false);
-  
+
   const { data: allNames, isLoading } = useReadContract({
     address: CONTRACTS.registry.address,
     abi: CONTRACTS.registry.abi,
@@ -123,35 +123,43 @@ export default function ViewAvailableDomainPage() {
 
   // Fetch names owned by an address
   async function fetchNamesOfOwner(address: string) {
-  if (!address) return;
-  setLoadingNames(true);
-  try {
-    const result = await publicClient?.readContract({
-      address: CONTRACTS.registry.address,
-      abi: CONTRACTS.registry.abi,
-      functionName: "ownerOf",
-      args: [address],
-    });
+    if (!address) return;
+    setLoadingNames(true);
+    try {
+      const result = await publicClient?.readContract({
+        address: CONTRACTS.registry.address,
+        abi: CONTRACTS.registry.abi,
+        functionName: "namesOfOwner",
+        args: [address],
+      });
 
-    // Type assertion to string[]
-    setNamesByOwner((result as string[]) || []);
-  } catch (err) {
-    console.error("Failed to fetch names:", err);
-    setNamesByOwner([]);
-  } finally {
-    setLoadingNames(false);
+      setNamesByOwner((result as string[]) || []);
+    } catch (err) {
+      console.error("Failed to fetch names:", err);
+      setNamesByOwner([]);
+    } finally {
+      setLoadingNames(false);
+    }
   }
-}
 
-
+  /* 🧩 MODIFIED FILTER LOGIC */
   const filtered = useMemo(() => {
-    // If search is an address and we have results, use namesByOwner
-    if (search.startsWith("0x") && namesByOwner.length > 0) return namesByOwner;
+    let list: string[] = [];
 
-    // Normal domain search
-    if (!debounced) return domains;
-    return domains.filter((n) => n.toLowerCase().includes(debounced));
-  }, [domains, debounced, namesByOwner, search]);
+    if (search.startsWith("0x") && namesByOwner.length > 0) {
+      // Only show resolved ones when searching by address
+      list = namesByOwner.filter((n) => resolveStatus[n] === "Resolved");
+    } else if (!debounced) {
+      // Show all domains by default
+      list = domains;
+    } else {
+      // When searching by name, show matches regardless of resolve status
+      list = domains.filter((n) => n.toLowerCase().includes(debounced));
+    }
+
+    return list;
+  }, [domains, debounced, namesByOwner, search, resolveStatus]);
+  /* 🧩 END */
 
   const canStart = isValidDotNtu(rawInput);
   const normalized = normalize(rawInput);
@@ -189,20 +197,24 @@ export default function ViewAvailableDomainPage() {
   }
 
   async function fetchResolveStatus(domain: string) {
-   
-      const resolve = await publicClient?.readContract({
+    try {
+      const resolved = await publicClient?.readContract({
         address: CONTRACTS.registry.address,
         abi: CONTRACTS.registry.abi,
         functionName: "resolve",
         args: [domain],
       });
-      if(resolve !== "0x0000000000000000000000000000000000000000"){
-           setResolveStatus((prev) => ({ ...prev, [domain]: "Resolved" }));
-      }else{
-        setResolveStatus((prev) => ({ ...prev, [domain]: "Not Resolved" }));
-      }
-     
-    
+
+      const status =
+        resolved && resolved !== "0x0000000000000000000000000000000000000000"
+          ? "Resolved"
+          : "Not Resolved";
+
+      setResolveStatus((prev) => ({ ...prev, [domain]: status }));
+    } catch (err) {
+      console.error("Resolve lookup failed:", err);
+      setResolveStatus((prev) => ({ ...prev, [domain]: "Not Resolved" }));
+    }
   }
 
   useEffect(() => {

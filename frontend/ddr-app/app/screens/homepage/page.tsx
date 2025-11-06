@@ -64,17 +64,17 @@ export default function HomePage() {
               abi: CONTRACTS.registry.abi,
               functionName: "resolve",
               args: [name],
-            }),
+            }) as Promise<`0x${string}`>,
             publicClient.readContract({
               address: CONTRACTS.auctionHouse.address,
               abi: CONTRACTS.auctionHouse.abi,
               functionName: "expiration",
               args: [namehash],
-            }),
+            }) as Promise<bigint>,
           ]);
 
           let expiryDate = null;
-          if (expiry && expiry > 0n) {
+          if (expiry > 0n) {
             expiryDate = new Date(Number(expiry) * 1000).toLocaleDateString();
           }
 
