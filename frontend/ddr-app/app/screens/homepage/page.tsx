@@ -32,7 +32,7 @@ export default function HomePage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
-  // ---------------- Fetch Owned Domains w/ Expiry ----------------
+
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
