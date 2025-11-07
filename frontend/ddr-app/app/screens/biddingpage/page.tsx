@@ -96,9 +96,10 @@ export default function BiddingPage() {
 
   return (
     <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-        text-[var(--foreground)] p-10 space-y-8">
-
+      <div
+        className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8"
+      >
         {/* Header */}
         <div className="flex justify-between items-center">
           <button
@@ -137,9 +138,7 @@ export default function BiddingPage() {
           </button>
         </div>
 
-        {msg && (
-          <p className="text-center text-sm opacity-80">{msg}</p>
-        )}
+        {msg && <p className="text-center text-sm opacity-80">{msg}</p>}
       </div>
     </div>
   );

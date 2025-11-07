@@ -21,7 +21,10 @@ export default function ViewRegisteredDomainPage() {
   const [selected, setSelected] = useState<any>(null);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"resolve" | "transfer" | null>(null);
-  const [resultModal, setResultModal] = useState<null | { ok: boolean; message: string }>(null);
+  const [resultModal, setResultModal] = useState<null | {
+    ok: boolean;
+    message: string;
+  }>(null);
 
   // Search
   const [search, setSearch] = useState("");
@@ -62,14 +65,16 @@ export default function ViewRegisteredDomainPage() {
       const owned: any[] = [];
 
       for (let name of names as string[]) {
-        const namehash = keccak256(encodePacked(["string"], [name])) as `0x${string}`;
+        const namehash = keccak256(
+          encodePacked(["string"], [name])
+        ) as `0x${string}`;
 
-        const owner = await publicClient.readContract({
+        const owner = (await publicClient.readContract({
           address: CONTRACTS.registry.address,
           abi: CONTRACTS.registry.abi,
           functionName: "ownerOf",
           args: [namehash],
-        }) as `0x${string}`;
+        })) as `0x${string}`;
 
         if (owner.toLowerCase() === address.toLowerCase()) {
           const resolve = await publicClient.readContract({
@@ -95,20 +100,26 @@ export default function ViewRegisteredDomainPage() {
     }
 
     if (!publicClient) {
-      setResultModal({ ok: false, message: "⚠️ Wallet or network not connected." });
+      setResultModal({
+        ok: false,
+        message: "⚠️ Wallet or network not connected.",
+      });
       return;
     }
 
     try {
-      const currentOwner = await publicClient.readContract({
+      const currentOwner = (await publicClient.readContract({
         address: CONTRACTS.registry.address,
         abi: CONTRACTS.registry.abi,
         functionName: "ownerOf",
         args: [selected.namehash],
-      }) as `0x${string}`;
+      })) as `0x${string}`;
 
       if (currentOwner.toLowerCase() !== address?.toLowerCase()) {
-        setResultModal({ ok: false, message: "❌ You are not the owner of this domain." });
+        setResultModal({
+          ok: false,
+          message: "❌ You are not the owner of this domain.",
+        });
         closeModal();
         return;
       }
@@ -121,7 +132,11 @@ export default function ViewRegisteredDomainPage() {
           args: [selected.name, input],
         });
 
-        setDomains(domains.map((d) => d.name === selected.name ? { ...d, resolve: input } : d));
+        setDomains(
+          domains.map((d) =>
+            d.name === selected.name ? { ...d, resolve: input } : d
+          )
+        );
         setResultModal({ ok: true, message: `✅ Resolve updated to ${input}` });
       }
     } catch (err: any) {
@@ -145,7 +160,7 @@ export default function ViewRegisteredDomainPage() {
     setMode(null);
   }
 
-    useEffect(() => {
+  useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
       window.history.pushState(null, "", window.location.href);
@@ -157,7 +172,7 @@ export default function ViewRegisteredDomainPage() {
   // Filtered domains based on search
   const filteredDomains = useMemo(() => {
     if (!debounced) return domains;
-    return domains.filter(d => d.name.toLowerCase().includes(debounced));
+    return domains.filter((d) => d.name.toLowerCase().includes(debounced));
   }, [domains, debounced]);
 
   return (
@@ -168,7 +183,9 @@ export default function ViewRegisteredDomainPage() {
           className="max-w-5xl w-full rounded-xl border shadow-md
           bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10 "
         >
-          <h1 className="text-3xl font-extrabold text-center">My Owned Domains</h1>
+          <h1 className="text-3xl font-extrabold text-center">
+            My Owned Domains
+          </h1>
 
           {/* Search Input */}
           {loaded && domains.length > 0 && (
@@ -198,10 +215,14 @@ export default function ViewRegisteredDomainPage() {
               scrollbar-thin scrollbar-thumb-[var(--foreground)] scrollbar-track-[var(--background)] always-scrollbar"
             >
               {filteredDomains.map((d) => {
-                const hasResolve = d.resolve !== "0x0000000000000000000000000000000000000000";
+                const hasResolve =
+                  d.resolve !== "0x0000000000000000000000000000000000000000";
 
                 return (
-                  <div key={d.name} className="border p-4 rounded-lg bg-[var(--card-bg)]">
+                  <div
+                    key={d.name}
+                    className="border p-4 rounded-lg bg-[var(--card-bg)]"
+                  >
                     <div className="text-lg font-semibold">{d.name}</div>
                     <div className="opacity-80 text-sm break-all">
                       Resolve: {hasResolve ? d.resolve : "(none set)"}
@@ -231,7 +252,9 @@ export default function ViewRegisteredDomainPage() {
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-6 w-[90%] max-w-sm space-y-4 transition-all">
                 <h2 className="text-lg font-bold">
-                  {mode === "resolve" ? "Set Resolve Address" : "Transfer Ownership"}
+                  {mode === "resolve"
+                    ? "Set Resolve Address"
+                    : "Transfer Ownership"}
                 </h2>
 
                 <input

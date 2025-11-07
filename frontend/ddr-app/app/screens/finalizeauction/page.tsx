@@ -152,12 +152,6 @@ export default function FinalizeAuctionPage() {
 
       const noWinner = highestBidder === "0x0000000000000000000000000000000000000000";
 
-       // Push a notification (optional)
-        if (noWinner) {
-            add(`⚠️ ${domain} expired with no valid bids - domain remains unregistered.`, "warning");
-        } else {
-            add(`🎉 ${domain} has been registered!`, "success");
-        }
 
         // Show different modal based on result
         setModal({
