@@ -32,25 +32,6 @@ export default function HomePage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
-
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePop = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, []);
-
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePop = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, []);
-
   useEffect(() => {
     if (!address || !publicClient) return;
 
@@ -201,16 +182,16 @@ export default function HomePage() {
       <div className="pt-10 px-8 flex justify-center">
         <div className="max-w-5xl w-full font-mono text-lg space-y-8 text-[var(--foreground)]">
           {/* Header */}
-          <div className="rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10">
-            <h1 className="text-2xl font-extrabold text-center">
+          <div className="rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-10 space-y-10 hover:shadow-md hover:-translate-y-[1px] 
+  hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <h1 className="text-2xl font-extrabold text-center ">
               My Domain Dashboard
             </h1>
 
             {/* Wallet Info */}
             <div
               className="border rounded-lg p-5 flex items-center justify-between
-              transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]
-              hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              transition-all duration-200"
             >
               <div className="flex items-center gap-4">
                 <Wallet className="w-8 h-8 opacity-80" />
@@ -245,135 +226,176 @@ export default function HomePage() {
           </div>
 
           {/* Owned Domains & Refunds */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Owned Domains */}
-            <div
-              className="border rounded-lg p-6 transition-all duration-200
-              hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            >
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <BadgeCheck className="w-10 h-10 opacity-80" />
-                <h3 className="font-semibold text-2xl">Owned Domains</h3>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              {domains.length === 0 ? (
-                <p className="text-center pt-6 opacity-70">
-                  No domains owned yet.
-                </p>
-              ) : (
-                <div
-                  className="h-[15rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 space-y-4"
-                  style={{ paddingRight: "10px" }}
-                >
-                  {domains.map((d) => (
-                    <div
-                      key={d.name}
-                      className="border rounded-lg p-4 text-base"
-                    >
-                      <div>
-                        {d.name} |{" "}
-                        {d.resolve ===
-                        "0x0000000000000000000000000000000000000000" ? (
-                          <span className="text-red-500">Not resolved ❌</span>
-                        ) : (
-                          <span className="text-green-600">Registered ✅</span>
-                        )}{" "}
-                        |{" "}
-                        {d.expiryDate ? (
-                          <>Expiry: {d.expiryDate}</>
-                        ) : (
-                          <span className="text-gray-500">No expiry data</span>
-                        )}
-                      </div>
-                      <div className="break-all text-sm">
-                        Address:{" "}
-                        {d.resolve ===
-                        "0x0000000000000000000000000000000000000000"
-                          ? "—"
-                          : d.resolve}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Owned Domains */}
+          <div
+            className="border rounded-xl p-6 shadow-sm
+            bg-[var(--background)] text-[var(--foreground)]
+            transition-all duration-200 hover:shadow-md hover:-translate-y-[1px] 
+  hover:bg-gray-50 dark:hover:bg-gray-800/50"
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <BadgeCheck className="w-10 h-10" />
+              <h3 className="font-semibold text-xl">Owned Domains</h3>
             </div>
 
-            {/* Pending Refunds */}
-            <div
-              className="border rounded-lg p-6 transition-all duration-200
-              hover:shadow-md hover:-translate-y-[1px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            >
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <Undo2 className="w-10 h-10 opacity-80" />
-                <h3 className="font-semibold text-2xl">Pending Refunds</h3>
-              </div>
+            {domains.length === 0 ? (
+              <p className="text-center py-6 opacity-65 italic">No domains owned yet.</p>
+            ) : (
+              <div className="space-y-4 h-[16rem] overflow-y-auto scrollbar-thin 
+                              scrollbar-thumb-gray-400/60 scrollbar-track-transparent
+                              dark:scrollbar-thumb-gray-600/50">
+                {[...domains].reverse().map((d) => (
+                  <div
+                    key={d.name}
+                    className="rounded-lg border p-4 bg-white/60 dark:bg-white/5 
+                              backdrop-blur-sm 
+                              "
+                  >
+                    <div className="flex justify-between items-center">
+                      <p className="font-medium">{d.name}</p>
 
-              {refunds.length === 0 ? (
-                <p className="text-center pt-6 opacity-70">
-                  No refundable deposits.
-                </p>
-              ) : (
-                <div
-                  className="h-[15rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 space-y-4"
-                  style={{ paddingRight: "10px" }}
-                >
-                  {refunds.map((r) => (
-                    <div
-                      key={r.domain}
-                      className="border rounded-lg p-4 text-base"
-                    >
-                      <div>
-                        {r.domain} | Refundable Deposit:{" "}
-                        <span className="text-red-500">
-                          {formatEther(r.deposit)}
-                        </span>{" "}
-                        ETH
-                      </div>
+                      {d.resolve ===
+                      "0x0000000000000000000000000000000000000000" ? (
+                        <span className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-600">
+                          Not Resolved
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 rounded-md bg-green-100 text-green-700">
+                          Registered
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+
+                    <div className="mt-2 text-sm opacity-70">
+                      Expiry: {d.expiryDate ? d.expiryDate : "—"}
+                    </div>
+
+                    <div className="mt-1 text-sm break-all opacity-65">
+                      Address:{" "}
+                      {d.resolve ===
+                      "0x0000000000000000000000000000000000000000"
+                        ? "—"
+                        : d.resolve}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Auction Participation */}
-          <div className="border rounded-lg p-6">
-            <h3 className="font-semibold mb-4 text-2xl text-center">
-              Ongoing Auctions
-            </h3>
+          {/* Pending Refunds */}
+          <div
+            className="border rounded-xl p-6 shadow-sm
+            bg-[var(--background)] text-[var(--foreground)]
+            transition-all duration-200 hover:shadow-md hover:-translate-y-[2px] 
+            hover:bg-gray-50 dark:hover:bg-gray-800/50"
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <Undo2 className="w-7 h-7 opacity-80" />
+              <h3 className="font-semibold text-xl">Pending Refunds</h3>
+            </div>
 
-            <div className="grid grid-cols-2 font-semibold text-center border-b pb-2 mb-2">
+            {refunds.length === 0 ? (
+              <p className="text-center py-6 opacity-65 italic">
+                No refundable deposits.
+              </p>
+            ) : (
+              <div className="space-y-4 h-[16rem] overflow-y-auto scrollbar-thin 
+                              scrollbar-thumb-gray-400/60 scrollbar-track-transparent
+                              dark:scrollbar-thumb-gray-600/50">
+                {[...refunds].reverse().map((r) => (
+                  <div
+                    key={r.domain}
+                    className="rounded-lg border p-4"
+                  >
+                    <div className="flex justify-between items-center">
+                      <p className="font-medium">{r.domain}</p>
+
+                      <span className="text-xs px-2 py-1 rounded-md 
+                                      bg-orange-200 text-orange-200 dark:bg-orange-700/40 dark:text-orange-700">
+                        Refundable
+                      </span>
+                    </div>
+
+                    <div className="mt-2 text-sm opacity-70">
+                      Amount: {formatEther(r.deposit)} ETH
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+         </div>
+          
+         {/* Auction Participation */}
+          <div
+            className="border rounded-xl p-6 shadow-sm
+            bg-[var(--background)] text-[var(--foreground)]
+            transition-all duration-200 hover:shadow-md hover:-translate-y-[2px] 
+            hover:bg-gray-50 dark:hover:bg-gray-800/50"
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <Gavel className="w-7 h-7 opacity-80" />
+              <h3 className="font-semibold text-xl">Ongoing Auctions</h3>
+            </div>
+
+            <div className="grid grid-cols-2 font-semibold text-sm border-b pb-2 mb-3 opacity-80">
               <div>Domain Name</div>
-              <div>Status</div>
+              <div className="text-right pr-2">Status</div>
             </div>
 
             <div
-              className="h-[15rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 space-y-2"
-              style={{ paddingRight: "10px" }}
+              className="space-y-3 h-[16rem] overflow-y-auto scrollbar-thin 
+                scrollbar-thumb scrollbar-track-transparent
+                dark:scrollbar"
             >
               {loadingAuctions ? (
-                <p className="text-center py-4 opacity-70">
-                  Loading auctions...
-                </p>
+                <p className="text-center py-4 opacity-65 italic">Loading auctions...</p>
               ) : auctionData.length === 0 ? (
-                <p className="text-center py-4 opacity-70">
-                  No ongoing auctions.
-                </p>
+                <p className="text-center py-4 opacity-65 italic">No ongoing auctions.</p>
               ) : (
-                auctionData.map((a) => (
-                  <div
-                    key={a.namehash}
-                    className="grid grid-cols-2 border rounded-lg p-4 text-base items-center text-center"
-                  >
-                    <span>{a.domain}</span>
-                    <span className="opacity-80">{getPhase(a)}</span>
-                  </div>
-                ))
+                [...auctionData].reverse().map((a) => {
+                  const status = getPhase(a);
+
+                  const statusStyle =
+                    status === "Commit Phase"
+                      ? "bg-blue-100 text-blue-400 dark:bg-blue-900/40 dark:text-blue-800"
+                      : status === "Reveal Phase"
+                      ? "bg-yellow-100 text-yellow-400 dark:bg-yellow-900/40 dark:text-yellow-800"
+                      : "bg-red-100 text-red-400 dark:bg-red-900/40 dark:text-red-700";
+
+                  return (
+                    <div
+                      key={a.namehash}
+                      className="border rounded-lg p-4 
+                        transition-all duration-150"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{a.domain}</span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-md ${statusStyle}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="w-full py-6 mt-16 border-t text-center text-sm opacity-70
+        bg-[var(--background)] text-[var(--foreground)]">
+        Developed by <span className="font-semibold">Alvin</span>,{" "}
+        <span className="font-semibold">Fernando</span> and{" "}
+        <span className="font-semibold">Ivan</span> from NTU &copy; 2025
+      </footer>
     </>
   );
 }

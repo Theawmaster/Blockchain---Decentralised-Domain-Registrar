@@ -12,7 +12,7 @@ const DELETED_KEY = "ddr-deleted-notifications";
 const ALL_HASHES_KEY = "ddr-all-hashes";
 
 export default function NotificationBell() {
-  const { notifications, remove, add } = useNotifications();
+  const { notifications, remove, add, clear } = useNotifications();
   const [open, setOpen] = useState(false);
   const publicClient = usePublicClient();
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
@@ -22,7 +22,7 @@ export default function NotificationBell() {
   const chainId = useChainId();
   const { address } = useAccount();
   const currentTime = Date.now();
-  const allHashes = useRef<Record<string, string>>({});
+  const SUPPRESS_KEY = "ddr-suppress-notifications";
 
   /* -------------------- Helpers -------------------- */
   function formatDateTime(timestamp: any) {
@@ -167,64 +167,10 @@ export default function NotificationBell() {
 
   /* -------------------- Notifications -------------------- */
   useEffect(() => {
-    const deletedArray = Array.from(deletedMessages);
-
-    // --- Missing hashes handling ---
-    const auctionHashes = new Set(auctionData.map((a) => a.namehash));
-    const missingHashes = Object.keys(allHashes.current).filter((h) => !auctionHashes.has(h));
-
-    if (missingHashes.length > 0 && publicClient) {
-      (async () => {
-        for (let h of missingHashes) {
-          try {
-            const highestBid = await publicClient.readContract({
-              address: CONTRACTS.auctionHouse.address,
-              abi: CONTRACTS.auctionHouse.abi,
-              functionName: "getHighestBid",
-              args: [h],
-            }) as bigint;
-            
-
-            const message = highestBid > 0n
-              ? `✅ ${allHashes.current[h]} has been successfully bid!`
-              : `⚠️ ${allHashes.current[h]} is not registered successfully due to no bids.`;
-           
-            if (deletedArray.some((msg) => msg.startsWith(message))) continue;
-            if (notifications.some((n) => n.message.startsWith(message))) continue;
-
-            add(`${message} ${formatDateTime(Date.now())}`, highestBid > 0n ? "success" : "warning");
-            // if (highestBid === 0n) {
-            //   setDeletedMessages(prev => new Set([...prev].filter(msg => !msg.includes(allHashes.current[h]))));
-            //   notifications
-            //     .filter(n => n.message.includes(allHashes.current[h]))
-            //     .forEach((n, idx) => remove(idx));
-            // }
-          } catch (err) {
-            
-          }
-        }
-      })();
+    if (localStorage.getItem(SUPPRESS_KEY) === "true") {
+        return; // ✅ skip generating new notifications
     }
-
-    // // --- Existing auction notifications ---
-    // if (auctionData.length > 0) {
-    //   auctionData.forEach((a) => {
-    //     if (!a.finalized) return;
-
-    //     const hasWinner =
-    //       a.highestBidder && a.highestBidder !== "0x0000000000000000000000000000000000000000";
-    //     const message = hasWinner
-    //       ? `✅ ${a.domain} has been successfully bid!`
-    //       : `⚠️ ${a.domain} is not registered successfully due to no bids.`;
-
-    //     if (deletedArray.some((msg) => msg.startsWith(message))) return;
-    //     if (notifications.some((n) => n.message.startsWith(message))) return;
-
-    //     add(`${message} ${formatDateTime(Date.now())}`, hasWinner ? "success" : "warning");
-    //   });
-    // }
-
-    // --- Auction phase notifications ---
+    // --- Auction notifications ---
     if (auctionData.length > 0) {
       auctionData.forEach((a) => {
         const phase = getPhase(a);
@@ -315,47 +261,76 @@ export default function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-72 z-50 bg-[var(--card-bg)] border border-[var(--border)] 
-          rounded-lg shadow-lg overflow-hidden"
+            className="
+            absolute right-0 mt-2 w-80 z-50
+            bg-[var(--background)] border border-[var(--border)]
+            rounded-lg shadow-lg flex flex-col
+            "
         >
-          {notifications.length === 0 ? (
-            <p className="p-4 text-sm opacity-60 text-center">No Notifications 🔕</p>
-          ) : (
-            <div
-              className="max-h-[300px] overflow-y-scroll 
-              scrollbar-thin scrollbar-thumb-[var(--foreground)] scrollbar-track-[var(--background)] 
-              always-scrollbar"
-            >
-              {notifications.map((n, index) => (
-                <div
-                  key={index}
-                  className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1 
-                  bg-[var(--card-bg)] hover:bg-[var(--foreground)]/5 transition"
+            {/* Header + Clear All */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--foreground)]/5">
+            <span className="text-sm font-semibold">Notifications</span>
+
+            {notifications.length > 0 && (
+                <button
+                onClick={() => {
+                    clear(); // <--- use the context clear()
+                    setDeletedMessages(new Set());
+                    localStorage.removeItem(DELETED_KEY);
+                    localStorage.setItem(SUPPRESS_KEY, "true");
+
+                }}
+                className="text-xs px-2 py-1 rounded hover:bg-[var(--foreground)]/10 transition cursor-pointer"
                 >
-                  <p className="text-sm leading-snug break-words text-left w-full">
-                    {n.message.replace(/\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/, "")}
-                  </p>
-                  <div className="flex items-center justify-between w-full">
-                    <p className="text-xs opacity-70">
-                      {n.message.match(/\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/)?.[0] || "—"}
+                Clear All
+                </button>
+            )}
+            </div>
+
+            {/* Scrollable notifications list */}
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+            {notifications.length === 0 ? (
+                <p className="p-4 text-sm opacity-60 text-center">No Notifications 🔕</p>
+            ) : (
+                notifications.map((n, index) => (
+                <div
+                    key={index}
+                    className="
+                    px-4 py-3 border-b border-[var(--border)]
+                    hover:bg-[var(--foreground)]/5 transition cursor-default
+                    "
+                >
+                    <p className="text-sm leading-snug mb-1 break-words">
+                    {n.message.replace(
+                        /\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/,
+                        ""
+                    )}
                     </p>
+
+                    <div className="flex items-center justify-between">
+                    <span className="text-xs opacity-60">
+                        {n.message.match(
+                        /\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/
+                        )?.[0] || "—"}
+                    </span>
+
                     <button
-                      onClick={() => {
+                        onClick={() => {
                         const msg = n.message;
                         setDeletedMessages((prev) => new Set([...prev, msg]));
                         remove(index);
-                      }}
-                      className="opacity-60 hover:opacity-100 transition p-1 hover:bg-[var(--foreground)]/10 rounded"
+                        }}
+                        className="p-1 rounded hover:bg-[var(--foreground)]/10 transition cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                        <X className="w-4 h-4 opacity-70 hover:opacity-100" />
                     </button>
-                  </div>
+                    </div>
                 </div>
-              ))}
+                ))
+            )}
             </div>
-          )}
         </div>
-      )}
+        )}
     </div>
   );
 
