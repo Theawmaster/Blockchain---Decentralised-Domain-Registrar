@@ -20,7 +20,9 @@ export default function BiddingPage() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const domain = String(params.get("name") || "").trim().toLowerCase();
+  const domain = String(params.get("name") || "")
+    .trim()
+    .toLowerCase();
   const { address } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync, isPending } = useWriteContract();
@@ -83,9 +85,10 @@ export default function BiddingPage() {
 
   return (
     <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-        text-[var(--foreground)] p-10 space-y-8">
-
+      <div
+        className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8"
+      >
         {/* Header */}
         <div className="flex justify-between items-center">
           <button
@@ -117,16 +120,13 @@ export default function BiddingPage() {
           <button
             onClick={commit}
             disabled={!address || isPending}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-            transition disabled:opacity-40"
+            className="w-full px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
           >
             {isPending ? "Submitting..." : "Commit Sealed Bid"}
           </button>
         </div>
 
-        {msg && (
-          <p className="text-center text-sm opacity-80">{msg}</p>
-        )}
+        {msg && <p className="text-center text-sm opacity-80">{msg}</p>}
       </div>
     </div>
   );
