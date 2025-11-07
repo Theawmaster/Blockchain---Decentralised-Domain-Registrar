@@ -1,16 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Imports
+// ─────────────────────────────────────────────────────────────────────────────
+
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom Errors
+// ─────────────────────────────────────────────────────────────────────────────
 
 error InvalidNameFormat();
 error NameAlreadyRegistered();
 error DomainNotRegistered();
 error NotDomainOwner();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Registry Contract
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The Registry contract manages .ntu domain registrations.
+// Each name is stored as a keccak256 hash for efficient lookups,
+// with ownership and resolution mapping stored on-chain.
+//
+// The contract uses OpenZeppelin's Ownable and Pausable for access control
+// and emergency stop functionality.
+//
+
 contract Registry is IRegistry, Ownable, Pausable {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Storage
+    // ─────────────────────────────────────────────────────────────────────────
+
     // namehash → owner
     mapping(bytes32 => address) private _ownerOf;
 
@@ -23,7 +47,21 @@ contract Registry is IRegistry, Ownable, Pausable {
     // List of registered names
     string[] private _allNames;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Constructor
+    // ─────────────────────────────────────────────────────────────────────────
+
     constructor() Ownable(msg.sender) {}
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Internal Validation Logic
+    // ─────────────────────────────────────────────────────────────────────────
+    //
+    // Validates that a domain:
+    // - Ends with ".ntu"
+    // - Contains only lowercase a–z, digits, and hyphens
+    // - Does not have consecutive hyphens
+    //
 
     function _isValidName(string memory name) internal pure returns (bool) {
         bytes memory b = bytes(name);
@@ -48,6 +86,10 @@ contract Registry is IRegistry, Ownable, Pausable {
 
         return true;
     }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Domain Registration
+    // ─────────────────────────────────────────────────────────────────────────
 
     function register(string calldata name, address owner)
         external
@@ -65,6 +107,12 @@ contract Registry is IRegistry, Ownable, Pausable {
         emit NameRegistered(namehash, owner, name);
     }
 
+     // ─────────────────────────────────────────────────────────────────────────
+    // Read Functions
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Returns the owner of a domain given its namehash.
+
     function ownerOf(bytes32 namehash)
         external
         view
@@ -74,6 +122,8 @@ contract Registry is IRegistry, Ownable, Pausable {
         return _ownerOf[namehash];
     }
 
+    /// @notice Resolves a name to its associated address.
+    
     function resolve(string calldata name)
         external
         view
@@ -82,6 +132,45 @@ contract Registry is IRegistry, Ownable, Pausable {
         bytes32 namehash = keccak256(abi.encodePacked(name));
         return _resolves[namehash];
     }
+
+
+    /// @notice Returns the full list of registered domain names.
+
+    function getAllNames() external view returns (string[] memory) {
+        return _allNames;
+    }
+
+    /// NEW: Helpful for frontend — lookup name from hash
+    function nameOf(bytes32 namehash) external view returns (string memory) {
+        return _nameOf[namehash];
+    }
+
+    /// @notice Lists all domains owned by a given address.
+
+    function namesOfOwner(address owner) external view returns (string[] memory) {
+
+        // Count owned domains
+        uint256 count;
+        for (uint256 i; i < _allNames.length; i++) {
+            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
+                count++;
+            }
+        }
+
+        // Populate results
+        string[] memory result = new string[](count);
+        uint256 j;
+        for (uint256 i; i < _allNames.length; i++) {
+            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
+                result[j++] = _allNames[i];
+            }
+        }
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Domain Resolution Management
+    // ─────────────────────────────────────────────────────────────────────────
 
     function setResolve(string calldata name, address resolved)
         external
@@ -96,39 +185,20 @@ contract Registry is IRegistry, Ownable, Pausable {
         emit ResolveSet(namehash, resolved);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Emergency Controls
+    // ─────────────────────────────────────────────────────────────────────────
+    //
+    // Used by contract owner to pause/unpause contract in emergencies.
+    // All write operations (register, setResolve, etc.) are blocked when paused.
+    //
+
     function pause() external onlyOwner {
         _pause();
     }
 
     function unpause() external onlyOwner {
         _unpause();
-    }
-
-    function getAllNames() external view returns (string[] memory) {
-        return _allNames;
-    }
-
-    /// NEW: Helpful for frontend — lookup name from hash
-    function nameOf(bytes32 namehash) external view returns (string memory) {
-        return _nameOf[namehash];
-    }
-
-    function namesOfOwner(address owner) external view returns (string[] memory) {
-        uint256 count;
-        for (uint256 i; i < _allNames.length; i++) {
-            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
-                count++;
-            }
-        }
-
-        string[] memory result = new string[](count);
-        uint256 j;
-        for (uint256 i; i < _allNames.length; i++) {
-            if (_ownerOf[keccak256(abi.encodePacked(_allNames[i]))] == owner) {
-                result[j++] = _allNames[i];
-            }
-        }
-        return result;
     }
 
 }
