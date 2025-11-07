@@ -193,6 +193,12 @@ export default function NotificationBell() {
             if (notifications.some((n) => n.message.startsWith(message))) continue;
 
             add(`${message} ${formatDateTime(Date.now())}`, highestBid > 0n ? "success" : "warning");
+            // if (highestBid === 0n) {
+            //   setDeletedMessages(prev => new Set([...prev].filter(msg => !msg.includes(allHashes.current[h]))));
+            //   notifications
+            //     .filter(n => n.message.includes(allHashes.current[h]))
+            //     .forEach((n, idx) => remove(idx));
+            // }
           } catch (err) {
             
           }
@@ -292,6 +298,7 @@ export default function NotificationBell() {
   }, [deletedMessages]);
 
   /* -------------------- UI -------------------- */
+    /* -------------------- UI -------------------- */
   return (
     <div className="relative">
       <button
@@ -307,33 +314,49 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-72 z-50 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden">
+        <div
+          className="absolute right-0 mt-2 w-72 z-50 bg-[var(--card-bg)] border border-[var(--border)] 
+          rounded-lg shadow-lg overflow-hidden"
+        >
           {notifications.length === 0 ? (
             <p className="p-4 text-sm opacity-60 text-center">No Notifications 🔕</p>
           ) : (
-            notifications.map((n, index) => (
-              <div key={index} className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1">
-                <p className="text-sm leading-snug break-words text-left w-full">
-                  {n.message.replace(/\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/, "")}
-                </p>
-                <div className="flex items-center justify-between w-full">
-                  <p className="text-xs">{n.message.match(/\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/)?.[0] || "—"}</p>
-                  <button
-                    onClick={() => {
-                      const msg = n.message;
-                      setDeletedMessages((prev) => new Set([...prev, msg]));
-                      remove(index);
-                    }}
-                    className="opacity-60 hover:opacity-100 transition p-1 hover:bg-[var(--foreground)]/10 rounded"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+            <div
+              className="max-h-[300px] overflow-y-scroll 
+              scrollbar-thin scrollbar-thumb-[var(--foreground)] scrollbar-track-[var(--background)] 
+              always-scrollbar"
+            >
+              {notifications.map((n, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1 
+                  bg-[var(--card-bg)] hover:bg-[var(--foreground)]/5 transition"
+                >
+                  <p className="text-sm leading-snug break-words text-left w-full">
+                    {n.message.replace(/\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/, "")}
+                  </p>
+                  <div className="flex items-center justify-between w-full">
+                    <p className="text-xs opacity-70">
+                      {n.message.match(/\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/)?.[0] || "—"}
+                    </p>
+                    <button
+                      onClick={() => {
+                        const msg = n.message;
+                        setDeletedMessages((prev) => new Set([...prev, msg]));
+                        remove(index);
+                      }}
+                      className="opacity-60 hover:opacity-100 transition p-1 hover:bg-[var(--foreground)]/10 rounded"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
     </div>
   );
+
 }
