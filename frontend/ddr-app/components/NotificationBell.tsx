@@ -8,7 +8,8 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { listBids } from "@/app/lib/bids";
 import { keccak256, encodePacked, formatEther } from "viem";
 
-const DELETED_KEY = "ddr-deleted-notifications"; // ✅ key for deleted messages
+const DELETED_KEY = "ddr-deleted-notifications";
+const ALL_HASHES_KEY = "ddr-all-hashes";
 
 export default function NotificationBell() {
   const { notifications, remove, add } = useNotifications();
@@ -18,11 +19,10 @@ export default function NotificationBell() {
   const [auctionData, setAuctionData] = useState<any[]>([]);
   const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set());
   const [refunds, setRefunds] = useState<any[]>([]);
-  const shownAlerts = useRef(new Set());
   const chainId = useChainId();
   const { address } = useAccount();
-
   const currentTime = Date.now();
+  const allHashes = useRef<Record<string, string>>({});
 
   /* -------------------- Helpers -------------------- */
   function formatDateTime(timestamp: any) {
@@ -56,15 +56,17 @@ export default function NotificationBell() {
   }
 
   /* -------------------- Initialization -------------------- */
-
-  // ✅ Restore deleted messages from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(DELETED_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setDeletedMessages(new Set(parsed));
-    }
+    if (saved) setDeletedMessages(new Set(JSON.parse(saved)));
   }, []);
+
+  useEffect(() => {
+  const saved = localStorage.getItem(ALL_HASHES_KEY);
+  if (saved) {
+    allHashes.current = JSON.parse(saved);
+  }
+}, []);
 
   // Live clock tick
   useEffect(() => {
@@ -77,48 +79,58 @@ export default function NotificationBell() {
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
     functionName: "getActiveAuctions",
+     query: {
+    refetchInterval: 2000, // auto-refresh every 10s
+  },
   });
 
   /* -------------------- Auction Data -------------------- */
   useEffect(() => {
-    async function load() {
-      if (!publicClient || !hashes || !Array.isArray(hashes)) return;
+  async function load() {
+    if (!publicClient || !hashes || !Array.isArray(hashes)) return;
 
-      const result = await Promise.all(
-        hashes.map(async (h: `0x${string}`) => {
-          const info = await publicClient.readContract({
-            address: CONTRACTS.auctionHouse.address,
-            abi: CONTRACTS.auctionHouse.abi,
-            functionName: "getAuctionInfo",
-            args: [h],
-          });
+    let updated = false;
 
-          const [
-            domain,
-            commitEnd,
-            revealEnd,
-            finalized,
-            highestBidder,
-            highestBid,
-          ] = info as [string, bigint, bigint, boolean, string, bigint];
+    const result = await Promise.all(
+      hashes.map(async (h: `0x${string}`) => {
+        const info = await publicClient.readContract({
+          address: CONTRACTS.auctionHouse.address,
+          abi: CONTRACTS.auctionHouse.abi,
+          functionName: "getAuctionInfo",
+          args: [h],
+        });
 
-          return {
-            namehash: h,
-            domain,
-            commitEnd: Number(commitEnd),
-            revealEnd: Number(revealEnd),
-            finalized: Boolean(finalized),
-            highestBidder: String(highestBidder),
-            highestBid: Number(highestBid),
-          };
-        })
-      );
+        const [domain, commitEnd, revealEnd, finalized, highestBidder, highestBid] =
+          info as [string, bigint, bigint, boolean, string, bigint];
 
-      setAuctionData(result);
+        // store hash → domain mapping
+        if (!(h in allHashes.current)) {
+          allHashes.current[h] = domain;
+          updated = true;
+        }
+
+        return {
+          namehash: h,
+          domain,
+          commitEnd: Number(commitEnd),
+          revealEnd: Number(revealEnd),
+          finalized: Boolean(finalized),
+          highestBidder: String(highestBidder),
+          highestBid: Number(highestBid),
+        };
+      })
+    );
+
+    if (updated) {
+      localStorage.setItem(ALL_HASHES_KEY, JSON.stringify(allHashes.current));
     }
 
-    load();
-  }, [hashes, publicClient]);
+    setAuctionData(result);
+  }
+
+  load();
+}, [hashes, publicClient]);
+
 
   /* -------------------- Refund Data -------------------- */
   useEffect(() => {
@@ -130,7 +142,6 @@ export default function NotificationBell() {
 
       for (let item of stored) {
         const namehash = keccak256(encodePacked(["string"], [item.domain]));
-
         const [finalized, deposit] = await Promise.all([
           publicClient.readContract({
             address: CONTRACTS.auctionHouse.address,
@@ -147,18 +158,73 @@ export default function NotificationBell() {
           }) as Promise<bigint>,
         ]);
 
-        if (finalized && deposit > 0n) {
-          out.push({ domain: item.domain, namehash, deposit });
-        }
+        if (finalized && deposit > 0n) out.push({ domain: item.domain, namehash, deposit });
       }
 
       setRefunds(out);
     })();
   }, [address, chainId, publicClient]);
 
-  /* -------------------- Notifications (Auctions + Refunds) -------------------- */
+  /* -------------------- Notifications -------------------- */
   useEffect(() => {
-    // --- Auction notifications ---
+    const deletedArray = Array.from(deletedMessages);
+
+    // --- Missing hashes handling ---
+    const auctionHashes = new Set(auctionData.map((a) => a.namehash));
+    const missingHashes = Object.keys(allHashes.current).filter((h) => !auctionHashes.has(h));
+
+    if (missingHashes.length > 0 && publicClient) {
+      (async () => {
+        for (let h of missingHashes) {
+          try {
+            const highestBid = await publicClient.readContract({
+              address: CONTRACTS.auctionHouse.address,
+              abi: CONTRACTS.auctionHouse.abi,
+              functionName: "getHighestBid",
+              args: [h],
+            }) as bigint;
+            
+
+            const message = highestBid > 0n
+              ? `✅ ${allHashes.current[h]} has been successfully bid!`
+              : `⚠️ ${allHashes.current[h]} is not registered successfully due to no bids.`;
+           
+            if (deletedArray.some((msg) => msg.startsWith(message))) continue;
+            if (notifications.some((n) => n.message.startsWith(message))) continue;
+
+            add(`${message} ${formatDateTime(Date.now())}`, highestBid > 0n ? "success" : "warning");
+            // if (highestBid === 0n) {
+            //   setDeletedMessages(prev => new Set([...prev].filter(msg => !msg.includes(allHashes.current[h]))));
+            //   notifications
+            //     .filter(n => n.message.includes(allHashes.current[h]))
+            //     .forEach((n, idx) => remove(idx));
+            // }
+          } catch (err) {
+            
+          }
+        }
+      })();
+    }
+
+    // // --- Existing auction notifications ---
+    // if (auctionData.length > 0) {
+    //   auctionData.forEach((a) => {
+    //     if (!a.finalized) return;
+
+    //     const hasWinner =
+    //       a.highestBidder && a.highestBidder !== "0x0000000000000000000000000000000000000000";
+    //     const message = hasWinner
+    //       ? `✅ ${a.domain} has been successfully bid!`
+    //       : `⚠️ ${a.domain} is not registered successfully due to no bids.`;
+
+    //     if (deletedArray.some((msg) => msg.startsWith(message))) return;
+    //     if (notifications.some((n) => n.message.startsWith(message))) return;
+
+    //     add(`${message} ${formatDateTime(Date.now())}`, hasWinner ? "success" : "warning");
+    //   });
+    // }
+
+    // --- Auction phase notifications ---
     if (auctionData.length > 0) {
       auctionData.forEach((a) => {
         const phase = getPhase(a);
@@ -166,51 +232,38 @@ export default function NotificationBell() {
 
         if (now < a.commitEnd && a.commitEnd - now <= 30 && phase === "Commit") {
           message = `⏳ Commit phase for ${a.domain} ending soon!`;
-        } else if (a.revealEnd - now <= 30 && phase === "Reveal") {
+        }
+        else if(phase === "Commit"){
+          message = `Commit phase for ${a.domain} has started`; 
+        }
+        else if (a.revealEnd - now <= 30 && phase === "Reveal") {
           message = `🕒 Reveal phase for ${a.domain} ending soon!`;
-        } else if (now > a.revealEnd && phase === "Finalize" && !a.finalized) {
+        } 
+        else if(phase === "Reveal"){
+          message = `Reveal phase for ${a.domain} has started`; 
+        }        
+        else if (now > a.revealEnd && phase === "Finalize" && !a.finalized) {
           message = `✅ Finalization required for ${a.domain}`;
         }
 
-        const deletedArray = Array.from(deletedMessages);
-        const deleted = deletedArray.some((msg) => msg.startsWith(message));
-        if (deleted) return;
+        if (deletedArray.some((msg) => msg.startsWith(message))) return;
+        if (notifications.some((n) => n.message.startsWith(message))) return;
 
-        const exists = notifications.some((n) => n.message.startsWith(message));
-        if (exists) return;
-
-        if (
-          message.includes("⏳") ||
-          message.includes("🕒") ||
-          message.includes("✅")
-        ) {
+        if (message.includes("⏳") || message.includes("🕒") || message.includes("✅")) {
           const type = message.includes("✅") ? "warning" : "info";
-          const fullMessage = `${message} ${formatDateTime(
-            currentTime
-          ).toLocaleString()}`;
-          add(fullMessage, type);
+          add(`${message} ${formatDateTime(currentTime)}`, type);
         }
       });
     }
 
     // --- Refund notifications ---
     if (refunds.length > 0) {
-      const deletedArray = Array.from(deletedMessages);
       refunds.forEach((r) => {
-        const message = `💰 Refund available for ${r.domain}: ${formatEther(
-          r.deposit
-        )} ETH`;
+        const message = `💰 Refund available for ${r.domain}: ${formatEther(r.deposit)} ETH`;
+        if (deletedArray.some((msg) => msg.startsWith(message))) return;
+        if (notifications.some((n) => n.message.startsWith(message))) return;
 
-        const deleted = deletedArray.some((msg) => msg.startsWith(message));
-        if (deleted) return;
-
-        const exists = notifications.some((n) => n.message.startsWith(message));
-        if (exists) return;
-
-        const fullMessage = `${message} ${formatDateTime(
-          currentTime
-        ).toLocaleString()}`;
-        add(fullMessage, "success");
+        add(`${message} ${formatDateTime(currentTime)}`, "success");
       });
     }
 
@@ -223,6 +276,8 @@ export default function NotificationBell() {
         commitEnd: Number(a.commitEnd),
         revealEnd: Number(a.revealEnd),
         highestBid: Number(a.highestBid),
+        finalized: a.finalized,
+        highestBidder: a.highestBidder,
       }))
     ),
     JSON.stringify(
@@ -243,77 +298,65 @@ export default function NotificationBell() {
   }, [deletedMessages]);
 
   /* -------------------- UI -------------------- */
+    /* -------------------- UI -------------------- */
   return (
     <div className="relative">
-      {/* Bell Button */}
       <button
         onClick={() => setOpen((o) => !o)}
         className="relative p-2 rounded hover:bg-[var(--foreground)]/25 transition cursor-pointer"
       >
         <Bell className="w-6 h-6" />
         {notifications.length > 0 && (
-          <span
-            className="
-              absolute -top-1 -right-1 
-              bg-red-500 text-white text-xs
-              px-1.5 py-0.5 rounded-full
-            "
-          >
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
             {notifications.length}
           </span>
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
-          className="
-            absolute right-0 mt-2 w-72 z-50
-            bg-[var(--card-bg)] border border-[var(--border)]
-            rounded-lg shadow-lg overflow-hidden
-          "
+          className="absolute right-0 mt-2 w-72 z-50 bg-[var(--card-bg)] border border-[var(--border)] 
+          rounded-lg shadow-lg overflow-hidden"
         >
           {notifications.length === 0 ? (
-            <p className="p-4 text-sm opacity-60 text-center">
-              No Notifications 🔕
-            </p>
+            <p className="p-4 text-sm opacity-60 text-center">No Notifications 🔕</p>
           ) : (
-            notifications.map((n, index) => (
-              <div
-                key={index}
-                className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1"
-              >
-                <p className="text-sm leading-snug break-words text-left w-full">
-                  {n.message.replace(
-                    /\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/,
-                    ""
-                  )}
-                </p>
-                <div className="flex items-center justify-between w-full">
-                  <p className="text-xs">
-                    {n.message.match(
-                      /\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/
-                    )?.[0] || "—"}
+            <div
+              className="max-h-[300px] overflow-y-scroll 
+              scrollbar-thin scrollbar-thumb-[var(--foreground)] scrollbar-track-[var(--background)] 
+              always-scrollbar"
+            >
+              {notifications.map((n, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1 
+                  bg-[var(--card-bg)] hover:bg-[var(--foreground)]/5 transition"
+                >
+                  <p className="text-sm leading-snug break-words text-left w-full">
+                    {n.message.replace(/\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/, "")}
                   </p>
-                  <button
-                    onClick={() => {
-                      const msg = n.message;
-                      setDeletedMessages((prev) => new Set([...prev, msg]));
-                      remove(index);
-                    }}
-                    className="
-                      opacity-60 hover:opacity-100 transition p-1
-                      hover:bg-[var(--foreground)]/10 rounded
-                    "
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center justify-between w-full">
+                    <p className="text-xs opacity-70">
+                      {n.message.match(/\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/)?.[0] || "—"}
+                    </p>
+                    <button
+                      onClick={() => {
+                        const msg = n.message;
+                        setDeletedMessages((prev) => new Set([...prev, msg]));
+                        remove(index);
+                      }}
+                      className="opacity-60 hover:opacity-100 transition p-1 hover:bg-[var(--foreground)]/10 rounded"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
     </div>
   );
+
 }
