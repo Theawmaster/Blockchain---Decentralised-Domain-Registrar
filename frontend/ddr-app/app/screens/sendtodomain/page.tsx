@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 
 export default function SendToDomainPage() {
   const router = useRouter();
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const publicClient = usePublicClient()!;
   const { sendTransactionAsync } = useSendTransaction();
 
@@ -67,6 +67,17 @@ export default function SendToDomainPage() {
       setMsg(err?.shortMessage || err?.message || "Transaction failed.");
     }
   }
+
+  // ---------------- Redirect if Not Connected ----------------
+    useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+        router.push("/screens/authpage");
+    }
+    }, [isConnected, status, address, router]);
+
 
   // Disable back navigation
   useEffect(() => {

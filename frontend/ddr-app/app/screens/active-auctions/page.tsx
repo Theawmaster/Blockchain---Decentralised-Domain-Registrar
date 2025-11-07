@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useReadContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
@@ -10,7 +10,8 @@ import { usePublicClient } from "wagmi";
 import AppNav from "@/components/AppNav";
 
 export default function ActiveAuctionsPage() {
-  const router = useRouter();
+    const { address, isConnected, status } = useAccount();
+    const router = useRouter();
   const publicClient = usePublicClient();
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
   const [auctionData, setAuctionData] = useState<any[]>([]);
@@ -27,6 +28,17 @@ export default function ActiveAuctionsPage() {
     abi: CONTRACTS.auctionHouse.abi,
     functionName: "getActiveAuctions",
   });
+
+  // ---------------- Redirect if Not Connected ----------------
+    useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+        router.push("/screens/authpage");
+    }
+    }, [isConnected, status, address, router]);
+
 
     // prevent Back button navigation
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useReadContract, usePublicClient } from "wagmi";
+import { useReadContract, usePublicClient, useAccount } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked } from "viem";
 import AppNav from "@/components/AppNav";
@@ -63,6 +63,7 @@ function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => voi
 /* -------------------- main page -------------------- */
 export default function ViewAvailableDomainPage() {
   const router = useRouter();
+  const { address, isConnected, status } = useAccount();
   const publicClient = usePublicClient();
 
   // start auction UI
@@ -104,6 +105,17 @@ export default function ViewAvailableDomainPage() {
     resolve: `0x${string}` | undefined;
     expiry: string | null;
   } | null>(null);
+  
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
 
   /* -------- Prevent browser back -------- */
   useEffect(() => {

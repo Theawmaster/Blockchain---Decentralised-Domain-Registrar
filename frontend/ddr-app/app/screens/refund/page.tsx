@@ -12,13 +12,33 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function RefundPage() {
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
   const router = useRouter();
   const { writeContractAsync } = useWriteContract();
 
   const [refunds, setRefunds] = useState<any[]>([]);
+
+    // ---------------- Redirect if Not Connected ----------------
+    useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+        router.push("/screens/authpage");
+    }
+    }, [isConnected, status, address, router]);
+
+    // ---------------- Prevent Back Navigation ----------------
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
   useEffect(() => {
     if (!address || !publicClient) return; // ✅ prevent undefined crash

@@ -13,14 +13,26 @@ import { keccak256, encodePacked } from "viem";
 import { useEffect, useState } from "react";
 import { listBids } from "@/app/lib/bids";
 import { formatEther } from "viem";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
+  const router = useRouter();
   const publicClient = usePublicClient();
   const [domains, setDomains] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [refunds, setRefunds] = useState<any[]>([]);
   const chainId = useChainId();
+
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
 
   // ---------------- Prevent Back Navigation ----------------
   useEffect(() => {

@@ -13,6 +13,16 @@ export default function AuthPage() {
   const [hasMetaMask, setHasMetaMask] = useState(true);
   const [isCorrectBrowser, setIsCorrectBrowser] = useState(true);
 
+  // ---------------- Prevent Back Navigation ----------------
+    useEffect(() => {
+      window.history.pushState(null, "", window.location.href);
+      const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+      };
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }, []);
+
   useEffect(() => {
     // Browser check
     const ua = navigator.userAgent.toLowerCase();
