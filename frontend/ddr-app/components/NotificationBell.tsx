@@ -11,7 +11,7 @@ import { keccak256, encodePacked, formatEther } from "viem";
 const DELETED_KEY = "ddr-deleted-notifications"; // ✅ key for deleted messages
 
 export default function NotificationBell() {
-  const { notifications, remove, add } = useNotifications();
+  const { notifications, remove, add, clear } = useNotifications();
   const [open, setOpen] = useState(false);
   const publicClient = usePublicClient();
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
@@ -23,6 +23,7 @@ export default function NotificationBell() {
   const { address } = useAccount();
 
   const currentTime = Date.now();
+  const SUPPRESS_KEY = "ddr-suppress-notifications";
 
   /* -------------------- Helpers -------------------- */
   function formatDateTime(timestamp: any) {
@@ -158,6 +159,9 @@ export default function NotificationBell() {
 
   /* -------------------- Notifications (Auctions + Refunds) -------------------- */
   useEffect(() => {
+    if (localStorage.getItem(SUPPRESS_KEY) === "true") {
+        return; // ✅ skip generating new notifications
+    }
     // --- Auction notifications ---
     if (auctionData.length > 0) {
       auctionData.forEach((a) => {
@@ -267,53 +271,76 @@ export default function NotificationBell() {
       {/* Dropdown */}
       {open && (
         <div
-          className="
-            absolute right-0 mt-2 w-72 z-50
-            bg-[var(--card-bg)] border border-[var(--border)]
-            rounded-lg shadow-lg overflow-hidden
-          "
+            className="
+            absolute right-0 mt-2 w-80 z-50
+            bg-[var(--background)] border border-[var(--border)]
+            rounded-lg shadow-lg flex flex-col
+            "
         >
-          {notifications.length === 0 ? (
-            <p className="p-4 text-sm opacity-60 text-center">
-              No Notifications 🔕
-            </p>
-          ) : (
-            notifications.map((n, index) => (
-              <div
-                key={index}
-                className="px-4 py-3 border-b border-[var(--border)] flex flex-col items-end gap-1"
-              >
-                <p className="text-sm leading-snug break-words text-left w-full">
-                  {n.message.replace(
-                    /\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/,
-                    ""
-                  )}
-                </p>
-                <div className="flex items-center justify-between w-full">
-                  <p className="text-xs">
-                    {n.message.match(
-                      /\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/
-                    )?.[0] || "—"}
-                  </p>
-                  <button
-                    onClick={() => {
-                      const msg = n.message;
-                      setDeletedMessages((prev) => new Set([...prev, msg]));
-                      remove(index);
-                    }}
+            {/* Header + Clear All */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--foreground)]/5">
+            <span className="text-sm font-semibold">Notifications</span>
+
+            {notifications.length > 0 && (
+                <button
+                onClick={() => {
+                    clear(); // <--- use the context clear()
+                    setDeletedMessages(new Set());
+                    localStorage.removeItem(DELETED_KEY);
+                    localStorage.setItem(SUPPRESS_KEY, "true");
+
+                }}
+                className="text-xs px-2 py-1 rounded hover:bg-[var(--foreground)]/10 transition cursor-pointer"
+                >
+                Clear All
+                </button>
+            )}
+            </div>
+
+            {/* Scrollable notifications list */}
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
+            {notifications.length === 0 ? (
+                <p className="p-4 text-sm opacity-60 text-center">No Notifications 🔕</p>
+            ) : (
+                notifications.map((n, index) => (
+                <div
+                    key={index}
                     className="
-                      opacity-60 hover:opacity-100 transition p-1
-                      hover:bg-[var(--foreground)]/10 rounded
+                    px-4 py-3 border-b border-[var(--border)]
+                    hover:bg-[var(--foreground)]/5 transition cursor-default
                     "
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                >
+                    <p className="text-sm leading-snug mb-1 break-words">
+                    {n.message.replace(
+                        /\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/,
+                        ""
+                    )}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                    <span className="text-xs opacity-60">
+                        {n.message.match(
+                        /\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/
+                        )?.[0] || "—"}
+                    </span>
+
+                    <button
+                        onClick={() => {
+                        const msg = n.message;
+                        setDeletedMessages((prev) => new Set([...prev, msg]));
+                        remove(index);
+                        }}
+                        className="p-1 rounded hover:bg-[var(--foreground)]/10 transition cursor-pointer"
+                    >
+                        <X className="w-4 h-4 opacity-70 hover:opacity-100" />
+                    </button>
+                    </div>
                 </div>
-              </div>
-            ))
-          )}
+                ))
+            )}
+            </div>
         </div>
-      )}
+        )}
     </div>
   );
 }

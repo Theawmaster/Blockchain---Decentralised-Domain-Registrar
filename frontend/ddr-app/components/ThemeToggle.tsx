@@ -27,17 +27,30 @@ export default function ThemeToggle() {
     }
   }, [theme]);
 
+  const isDark = theme === "dark";
+
   return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    <div
+      onClick={() => setTheme(isDark ? "light" : "dark")}
       className="
-        px-3 py-1 rounded-md border text-sm cursor-pointer
-        bg-white/70 dark:bg-black/30 backdrop-blur
-        text-gray-800 dark:text-gray-200
-        hover:scale-105 transition
+        w-16 h-8 px-1 flex items-center relative cursor-pointer
+        rounded-full transition-colors
+        bg-gray-500 border border-[var(--border)]
       "
     >
-      {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-    </button>
+      {/* Sun / Light */}
+      <span className="text-xs absolute left-2 text-yellow-600">☀️</span>
+
+      {/* Moon / Dark */}
+      <span className="text-xs absolute right-2 text-gray-300 dark:text-blue-300">🌙</span>
+
+      {/* Slider */}
+      <div
+        className={`
+          w-6 h-6 rounded-full bg-white shadow-md transform transition-transform
+          ${isDark ? "translate-x-8" : "translate-x-0"}
+        `}
+      />
+    </div>
   );
 }

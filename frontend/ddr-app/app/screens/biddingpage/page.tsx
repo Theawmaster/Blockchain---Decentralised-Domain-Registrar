@@ -15,6 +15,7 @@ import { upsertBid } from "@/app/lib/bids";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 import AppNav from "@/components/AppNav";
+import toast from "react-hot-toast";
 
 export default function BiddingPage() {
   const params = useSearchParams();
@@ -74,10 +75,10 @@ export default function BiddingPage() {
         ts: Date.now(),
       });
 
-      setMsg("✅ Bid committed. Reveal during the reveal phase.");
+      toast.success("✅ Bid committed. Reveal during the reveal phase.");
       setSalt(randomSalt());
     } catch (err: any) {
-      setMsg(err?.shortMessage || err?.message || "Commit failed.");
+      toast.error(err?.shortMessage || err?.message || "Commit failed.");
     }
   }
 
@@ -99,7 +100,7 @@ export default function BiddingPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-center">
-          Commit Bid for <span className="text-blue-500">{domain}</span>
+          Commit Bid for <span className="text-gray-500">{domain}</span>
         </h1>
 
         <div className="space-y-4">
@@ -111,14 +112,14 @@ export default function BiddingPage() {
             value={bidEth}
             onChange={(e) => setBidEth(e.target.value)}
             className="w-full px-4 py-2 rounded-lg border border-[var(--border)]
-            bg-[var(--card-bg)] focus:ring-2 focus:ring-blue-500 outline-none"
+            bg-[var(--card-bg)] focus:ring-2 focus:ring-gray-500 outline-none"
           />
 
           <button
             onClick={commit}
             disabled={!address || isPending}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-            transition disabled:opacity-40"
+            className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg
+            transition disabled:opacity-40 cursor-pointer"
           >
             {isPending ? "Submitting..." : "Commit Sealed Bid"}
           </button>

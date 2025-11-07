@@ -62,7 +62,7 @@ export default function OnboardingModal({ open, setOpen }: { open: boolean; setO
                 Next <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
-              <button onClick={() => setOpen(false)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition cursor-pointer">
+              <button onClick={() => setOpen(false)} className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition cursor-pointer">
                 Get Started
               </button>
             )}
