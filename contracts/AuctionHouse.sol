@@ -1,3 +1,7 @@
+/// @title AuctionHouse
+/// @notice Implements a blind commit–reveal auction system for `.ntu` domain registrations.
+/// @dev Integrates with `Registry` for final ownership assignment and supports emergency pause via OpenZeppelin's Pausable.
+
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
@@ -6,6 +10,8 @@ import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+
+// ----------------------------- Custom Errors -----------------------------
 
 error EmptyBidHash();
 error DepositBelowReserve();
@@ -71,6 +77,15 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     event AuctionStarted(bytes32 indexed namehash, uint256 commitEnd, uint256 revealEnd);
     event ProceedsSwept(address indexed to, uint256 amount);
 
+    // ------------------------------ Constructor ------------------------------
+
+    /// @notice Deploys the auction house with registry reference and duration parameters.
+    /// @param registry_ Address of deployed Registry contract.
+    /// @param reservePrice_ Minimum bid deposit (in wei).
+    /// @param commitDuration_ Duration of commit window in seconds.
+    /// @param revealDuration_ Duration of reveal window in seconds.
+    /// @param defaultExpiry_ Default expiry for winning domain registration.
+
     constructor(
         address registry_,
         uint256 reservePrice_,
@@ -89,6 +104,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
     }
 
     // ------------------------------ Internal utils -----------------------------
+    /// @dev Checks if a domain string ends with `.ntu`.
 
     function _endsWithNTU(string memory name) internal pure returns (bool) {
         bytes memory s = bytes(name);
@@ -100,6 +116,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         return true;
     }
 
+    /// @dev Initializes commit/reveal windows for a given namehash if not started.
     function _initWindows(bytes32 namehash) internal {
         if (_commitEnd[namehash] == 0) {
             uint256 cEnd = block.timestamp + commitDuration;
@@ -114,6 +131,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
+    /// @dev Removes a namehash from active auction tracking array.
     function _deactivate(bytes32 namehash) internal {
         if (_isActive[namehash]) {
             _isActive[namehash] = false;
@@ -128,6 +146,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
+    /// @dev Shared internal logic for committing a sealed bid.
     // Single internal commit entry used by both public commit fns (avoids reentrancy issues)
     function _commit(bytes32 namehash, bytes32 bidHash) internal {
         if (bidHash == bytes32(0)) revert EmptyBidHash();
@@ -145,7 +164,10 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit BidCommitted(namehash, msg.sender);
     }
 
-    // --------------------------------- Starters --------------------------------
+    // ------------------------------ Auction Setup ------------------------------
+
+    /// @notice Optionally pre-start an auction window for a domain.
+    /// @dev Only allowed when contract is not paused.
 
     /// @notice Optional: proactively open a window for a domain.
     function startAuction(string calldata name) external whenNotPaused {
@@ -156,7 +178,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         _initWindows(namehash);
     }
 
-    // --------------------------------- Commit ----------------------------------
+    // -------------------------------- Commit Phase ------------------------------
 
     /// @notice Commit sealed bid with precomputed hash: keccak256(abi.encodePacked(name, bid, salt, bidder))
     function commitBid(bytes32 namehash, bytes32 bidHash)
@@ -182,7 +204,10 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         _commit(namehash, bidHash);
     }
 
-    // --------------------------------- Reveal ----------------------------------
+    // -------------------------------- Reveal Phase ------------------------------
+
+    /// @notice Reveal a previously committed bid by submitting the original bid amount and salt.
+    /// @dev Must match the commit hash and fall within reveal window.
 
     function revealBid(
         string calldata name,
@@ -213,7 +238,10 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit BidRevealed(namehash, msg.sender, bidAmount);
     }
 
-    // ------------------------------- Finalization ------------------------------
+    // ------------------------------ Finalization Phase ------------------------------
+
+    /// @notice Finalize auction once reveal window ends.
+    /// @dev Registers winning domain and collects winning deposit.
 
     function finalizeAuction(string calldata name)
     external
@@ -263,7 +291,9 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit AuctionFinalized(namehash, winner, winBid);
     }
 
-    // --------------------------------- Refunds ---------------------------------
+    // -------------------------------- Refunds -----------------------------------
+
+    /// @notice Withdraw refunded deposits for non-winning bidders after finalization.
 
     function withdraw(bytes32 namehash) external nonReentrant whenNotPaused {
         if (!_finalized[namehash]) revert AuctionNotEnded();
@@ -279,7 +309,9 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit RefundIssued(namehash, msg.sender, amount);
     }
 
-    // --------------------------------- Admin -----------------------------------
+    // -------------------------------- Admin Controls --------------------------------
+
+    /// @notice Pause all state-changing auction actions (emergency stop).
 
     function pause() external onlyOwner { _pause(); }
     function unpause() external onlyOwner { _unpause(); }
@@ -292,7 +324,7 @@ contract AuctionHouse is IAuctionHouse, Ownable, Pausable, ReentrancyGuard {
         emit ProceedsSwept(beneficiary, amt);
     }
 
-    // ---------------------------------- Views ----------------------------------
+    // ---------------------------------- Views Helpers ----------------------------------
 
     function commitEnd(bytes32 namehash) external view returns (uint256) { return _commitEnd[namehash]; }
     function revealEnd(bytes32 namehash) external view returns (uint256) { return _revealEnd[namehash]; }
