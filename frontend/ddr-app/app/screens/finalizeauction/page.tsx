@@ -34,7 +34,6 @@ function Section({
   );
 }
 
-// Modal Component
 function Modal({
   open,
   title,
@@ -66,6 +65,7 @@ function Modal({
 }
 
 /* ---------------- Page ---------------- */
+// Main Finalize Auction Page Component
 export default function FinalizeAuctionPage() {
   // Router and Params
   const router = useRouter();
@@ -107,7 +107,6 @@ export default function FinalizeAuctionPage() {
     args: namehash ? [namehash] : undefined,
   });
 
-  // Parsed Auction Info
   const commitEnd = info ? Number((info as any)[1]) : 0;
   const revealEnd = info ? Number((info as any)[2]) : 0;
   const highestBidder = info ? ((info as any)[4] as `0x${string}`) : undefined;
@@ -165,7 +164,6 @@ export default function FinalizeAuctionPage() {
 
       const noWinner =
         highestBidder === "0x0000000000000000000000000000000000000000";
-
       // Push a notification (optional)
       if (noWinner) {
         add(
@@ -196,7 +194,6 @@ export default function FinalizeAuctionPage() {
   }
 
   /* Prevent user going back */
-
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
