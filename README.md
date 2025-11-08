@@ -5,6 +5,8 @@ Built to be **transparent**, **tamper-resistant**, and **user-first**, DDR merge
 
 Website link: https://ddr-app-theawmaster-theawmasters-projects.vercel.app?_vercel_share=N6dw1QrNX39CIL2kzs3HwKLmoTguqhOE
 
+Demo Video: https://www.youtube.com/watch?v=umWyAbSIryA
+
 ---
 
 ## Core Capabilities
