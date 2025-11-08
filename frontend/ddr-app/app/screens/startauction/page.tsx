@@ -38,7 +38,7 @@ export default function StartAuctionPage() {
   const params = useSearchParams();
   const domain = normalize(params.get("name") || "");
 
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
 
   const [modal, setModal] = useState({
@@ -77,7 +77,18 @@ export default function StartAuctionPage() {
       showModal("Transaction Failed ❌", err?.shortMessage || "Please try again.");
     }
   }
-  
+
+    // ---------------- Redirect if Not Connected ----------------
+    useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
+    // Prevent Back Navigation
     useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {

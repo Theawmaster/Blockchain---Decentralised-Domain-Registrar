@@ -1,5 +1,6 @@
 "use client";
 
+export const dynamic = "force-dynamic";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -21,10 +22,8 @@ export default function BiddingPage() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const domain = String(params.get("name") || "")
-    .trim()
-    .toLowerCase();
-  const { address } = useAccount();
+  const domain = String(params.get("name") || "").trim().toLowerCase();
+  const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync, isPending } = useWriteContract();
 
@@ -43,6 +42,17 @@ export default function BiddingPage() {
     [domain]
   );
 
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
+  // ---------------- Prevent Back Navigation ----------------
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {

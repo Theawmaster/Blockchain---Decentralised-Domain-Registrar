@@ -11,7 +11,7 @@ import { useEffect } from "react";
 
 export default function ViewWalletDetailPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const { data: balance } = useBalance({ address });
 
   const handleCopy = () => {
@@ -23,21 +23,15 @@ export default function ViewWalletDetailPage() {
     navigator.clipboard.writeText(address);
   };
 
-  if (!isConnected) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div
-          className="p-6 border rounded-lg shadow-md text-center w-full max-w-sm
-          bg-[var(--background)] text-[var(--foreground)]"
-        >
-          <p className="text-lg font-semibold">No wallet connected</p>
-          <p className="text-sm opacity-70 mt-2">
-            Please connect your wallet to view your wallet details.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.replace("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
 
   // Disable Back Button
   useEffect(() => {
@@ -48,6 +42,7 @@ export default function ViewWalletDetailPage() {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
+  
 
   return (
     <>

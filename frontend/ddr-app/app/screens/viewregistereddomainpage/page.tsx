@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function ViewRegisteredDomainPage() {
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -33,6 +33,24 @@ export default function ViewRegisteredDomainPage() {
     const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 200);
     return () => clearTimeout(t);
   }, [search]);
+
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
+    /* -------- Prevent browser back -------- */
+    useEffect(() => {
+      window.history.pushState(null, "", window.location.href);
+      const handlePop = () => window.history.pushState(null, "", window.location.href);
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }, []);
 
   useEffect(() => {
     if (!address || !publicClient) return;

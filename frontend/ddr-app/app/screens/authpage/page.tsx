@@ -13,14 +13,24 @@ export default function AuthPage() {
   const [hasMetaMask, setHasMetaMask] = useState(true);
   const [isCorrectBrowser, setIsCorrectBrowser] = useState(true);
 
-  // useEffect(() => {
-  //   // Browser check
-  //   const ua = navigator.userAgent.toLowerCase();
-  //   setIsCorrectBrowser(ua.includes("chrome") || ua.includes("brave") || ua.includes("chromium"));
+  // ---------------- Prevent Back Navigation ----------------
+    useEffect(() => {
+      window.history.pushState(null, "", window.location.href);
+      const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+      };
+      window.addEventListener("popstate", handlePop);
+      return () => window.removeEventListener("popstate", handlePop);
+    }, []);
 
-  //   // Wallet check
-  //   setHasMetaMask(typeof window !== "undefined" && (window as any).ethereum);
-  // }, []);
+  useEffect(() => {
+    // Browser check
+    const ua = navigator.userAgent.toLowerCase();
+    setIsCorrectBrowser(ua.includes("chrome") || ua.includes("brave") || ua.includes("chromium"));
+
+    // Wallet check
+    setHasMetaMask(typeof window !== "undefined" && (window as any).ethereum);
+  }, []);
 
   if (isConnected) redirect("/screens/homepage", RedirectType.push);
 

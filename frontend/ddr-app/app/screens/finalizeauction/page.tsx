@@ -1,5 +1,6 @@
 "use client";
 
+export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/app/context/NotificationContext";
@@ -57,7 +58,7 @@ export default function FinalizeAuctionPage() {
     [domain]
   );
 
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync, isPending } = useWriteContract();
   const { notifications, remove, add } = useNotifications();
@@ -94,6 +95,27 @@ export default function FinalizeAuctionPage() {
     : "Finalize Phase";
 
   const canFinalize = phase === "Finalize Phase" && !finalized;
+
+// ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
+  /* Prevent user going back */
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => {
+        window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+    }, []);
 
   /* ---- Gas Estimate ---- */
   useEffect(() => {
@@ -151,16 +173,6 @@ export default function FinalizeAuctionPage() {
     }
   }
 
-  /* Prevent user going back */
-
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-    }, []);
 
   return (
     <div className="flex justify-center pt-16 px-4">

@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { Layout } from "@/app/layout";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { X, Send } from "lucide-react";
 import SendTransaction from "@/components/SendTransaction";
 import { ethers } from "ethers";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const REGISTRY = CONTRACTS.registry;
 
 export default function domainlookuppage() {
+  const router = useRouter();
+  
+  const { address, isConnected, status } = useAccount();
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState("");
   const [owner, setOwner] = useState<string | null>(null);
@@ -35,6 +39,17 @@ export default function domainlookuppage() {
     const result = await refetch();
     setOwner(result?.data ? (result.data as string) : null);
   };
+
+  // ---------------- Redirect if Not Connected ----------------
+  useEffect(() => {
+    // Wait until wagmi finishes determining connection status
+    if (status === "connecting") return;
+
+    if (!isConnected || !address) {
+      router.push("/screens/authpage");
+    }
+  }, [isConnected, status, address, router]);
+
 
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);

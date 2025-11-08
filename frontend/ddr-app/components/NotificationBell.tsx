@@ -8,8 +8,7 @@ import { CONTRACTS } from "@/lib/web3/contract";
 import { listBids } from "@/app/lib/bids";
 import { keccak256, encodePacked, formatEther } from "viem";
 
-const DELETED_KEY = "ddr-deleted-notifications";
-const ALL_HASHES_KEY = "ddr-all-hashes";
+const DELETED_KEY = "ddr-deleted-notifications"; // ✅ key for deleted messages
 
 export default function NotificationBell() {
   const { notifications, remove, add, clear } = useNotifications();
@@ -19,8 +18,10 @@ export default function NotificationBell() {
   const [auctionData, setAuctionData] = useState<any[]>([]);
   const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set());
   const [refunds, setRefunds] = useState<any[]>([]);
+  const shownAlerts = useRef(new Set());
   const chainId = useChainId();
   const { address } = useAccount();
+
   const currentTime = Date.now();
   const SUPPRESS_KEY = "ddr-suppress-notifications";
 
@@ -56,17 +57,15 @@ export default function NotificationBell() {
   }
 
   /* -------------------- Initialization -------------------- */
+
+  // ✅ Restore deleted messages from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(DELETED_KEY);
-    if (saved) setDeletedMessages(new Set(JSON.parse(saved)));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setDeletedMessages(new Set(parsed));
+    }
   }, []);
-
-  useEffect(() => {
-  const saved = localStorage.getItem(ALL_HASHES_KEY);
-  if (saved) {
-    allHashes.current = JSON.parse(saved);
-  }
-}, []);
 
   // Live clock tick
   useEffect(() => {
@@ -79,58 +78,48 @@ export default function NotificationBell() {
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
     functionName: "getActiveAuctions",
-     query: {
-    refetchInterval: 2000, // auto-refresh every 10s
-  },
   });
 
   /* -------------------- Auction Data -------------------- */
   useEffect(() => {
-  async function load() {
-    if (!publicClient || !hashes || !Array.isArray(hashes)) return;
+    async function load() {
+      if (!publicClient || !hashes || !Array.isArray(hashes)) return;
 
-    let updated = false;
+      const result = await Promise.all(
+        hashes.map(async (h: `0x${string}`) => {
+          const info = await publicClient.readContract({
+            address: CONTRACTS.auctionHouse.address,
+            abi: CONTRACTS.auctionHouse.abi,
+            functionName: "getAuctionInfo",
+            args: [h],
+          });
 
-    const result = await Promise.all(
-      hashes.map(async (h: `0x${string}`) => {
-        const info = await publicClient.readContract({
-          address: CONTRACTS.auctionHouse.address,
-          abi: CONTRACTS.auctionHouse.abi,
-          functionName: "getAuctionInfo",
-          args: [h],
-        });
+          const [
+            domain,
+            commitEnd,
+            revealEnd,
+            finalized,
+            highestBidder,
+            highestBid,
+          ] = info as [string, bigint, bigint, boolean, string, bigint];
 
-        const [domain, commitEnd, revealEnd, finalized, highestBidder, highestBid] =
-          info as [string, bigint, bigint, boolean, string, bigint];
+          return {
+            namehash: h,
+            domain,
+            commitEnd: Number(commitEnd),
+            revealEnd: Number(revealEnd),
+            finalized: Boolean(finalized),
+            highestBidder: String(highestBidder),
+            highestBid: Number(highestBid),
+          };
+        })
+      );
 
-        // store hash → domain mapping
-        if (!(h in allHashes.current)) {
-          allHashes.current[h] = domain;
-          updated = true;
-        }
-
-        return {
-          namehash: h,
-          domain,
-          commitEnd: Number(commitEnd),
-          revealEnd: Number(revealEnd),
-          finalized: Boolean(finalized),
-          highestBidder: String(highestBidder),
-          highestBid: Number(highestBid),
-        };
-      })
-    );
-
-    if (updated) {
-      localStorage.setItem(ALL_HASHES_KEY, JSON.stringify(allHashes.current));
+      setAuctionData(result);
     }
 
-    setAuctionData(result);
-  }
-
-  load();
-}, [hashes, publicClient]);
-
+    load();
+  }, [hashes, publicClient]);
 
   /* -------------------- Refund Data -------------------- */
   useEffect(() => {
@@ -142,6 +131,7 @@ export default function NotificationBell() {
 
       for (let item of stored) {
         const namehash = keccak256(encodePacked(["string"], [item.domain]));
+
         const [finalized, deposit] = await Promise.all([
           publicClient.readContract({
             address: CONTRACTS.auctionHouse.address,
@@ -158,14 +148,16 @@ export default function NotificationBell() {
           }) as Promise<bigint>,
         ]);
 
-        if (finalized && deposit > 0n) out.push({ domain: item.domain, namehash, deposit });
+        if (finalized && deposit > 0n) {
+          out.push({ domain: item.domain, namehash, deposit });
+        }
       }
 
       setRefunds(out);
     })();
   }, [address, chainId, publicClient]);
 
-  /* -------------------- Notifications -------------------- */
+  /* -------------------- Notifications (Auctions + Refunds) -------------------- */
   useEffect(() => {
     if (localStorage.getItem(SUPPRESS_KEY) === "true") {
         return; // ✅ skip generating new notifications
@@ -178,38 +170,51 @@ export default function NotificationBell() {
 
         if (now < a.commitEnd && a.commitEnd - now <= 30 && phase === "Commit") {
           message = `⏳ Commit phase for ${a.domain} ending soon!`;
-        }
-        else if(phase === "Commit"){
-          message = `Commit phase for ${a.domain} has started`; 
-        }
-        else if (a.revealEnd - now <= 30 && phase === "Reveal") {
+        } else if (a.revealEnd - now <= 30 && phase === "Reveal") {
           message = `🕒 Reveal phase for ${a.domain} ending soon!`;
-        } 
-        else if(phase === "Reveal"){
-          message = `Reveal phase for ${a.domain} has started`; 
-        }        
-        else if (now > a.revealEnd && phase === "Finalize" && !a.finalized) {
+        } else if (now > a.revealEnd && phase === "Finalize" && !a.finalized) {
           message = `✅ Finalization required for ${a.domain}`;
         }
 
-        if (deletedArray.some((msg) => msg.startsWith(message))) return;
-        if (notifications.some((n) => n.message.startsWith(message))) return;
+        const deletedArray = Array.from(deletedMessages);
+        const deleted = deletedArray.some((msg) => msg.startsWith(message));
+        if (deleted) return;
 
-        if (message.includes("⏳") || message.includes("🕒") || message.includes("✅")) {
+        const exists = notifications.some((n) => n.message.startsWith(message));
+        if (exists) return;
+
+        if (
+          message.includes("⏳") ||
+          message.includes("🕒") ||
+          message.includes("✅")
+        ) {
           const type = message.includes("✅") ? "warning" : "info";
-          add(`${message} ${formatDateTime(currentTime)}`, type);
+          const fullMessage = `${message} ${formatDateTime(
+            currentTime
+          ).toLocaleString()}`;
+          add(fullMessage, type);
         }
       });
     }
 
     // --- Refund notifications ---
     if (refunds.length > 0) {
+      const deletedArray = Array.from(deletedMessages);
       refunds.forEach((r) => {
-        const message = `💰 Refund available for ${r.domain}: ${formatEther(r.deposit)} ETH`;
-        if (deletedArray.some((msg) => msg.startsWith(message))) return;
-        if (notifications.some((n) => n.message.startsWith(message))) return;
+        const message = `💰 Refund available for ${r.domain}: ${formatEther(
+          r.deposit
+        )} ETH`;
 
-        add(`${message} ${formatDateTime(currentTime)}`, "success");
+        const deleted = deletedArray.some((msg) => msg.startsWith(message));
+        if (deleted) return;
+
+        const exists = notifications.some((n) => n.message.startsWith(message));
+        if (exists) return;
+
+        const fullMessage = `${message} ${formatDateTime(
+          currentTime
+        ).toLocaleString()}`;
+        add(fullMessage, "success");
       });
     }
 
@@ -222,8 +227,6 @@ export default function NotificationBell() {
         commitEnd: Number(a.commitEnd),
         revealEnd: Number(a.revealEnd),
         highestBid: Number(a.highestBid),
-        finalized: a.finalized,
-        highestBidder: a.highestBidder,
       }))
     ),
     JSON.stringify(
@@ -244,21 +247,31 @@ export default function NotificationBell() {
   }, [deletedMessages]);
 
   /* -------------------- UI -------------------- */
-    /* -------------------- UI -------------------- */
   return (
     <div className="relative">
+      {/* Bell Button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+            localStorage.removeItem("ddr-suppress-notifications"); // 🌙 Wake the bell
+            setOpen((o) => !o);
+        }}
         className="relative p-2 rounded hover:bg-[var(--foreground)]/25 transition cursor-pointer"
       >
         <Bell className="w-6 h-6" />
         {notifications.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+          <span
+            className="
+              absolute -top-1 -right-1 
+              bg-red-500 text-white text-xs
+              px-1.5 py-0.5 rounded-full
+            "
+          >
             {notifications.length}
           </span>
         )}
       </button>
 
+      {/* Dropdown */}
       {open && (
         <div
             className="
@@ -333,5 +346,4 @@ export default function NotificationBell() {
         )}
     </div>
   );
-
 }
