@@ -107,6 +107,7 @@ export default function FinalizeAuctionPage() {
     args: namehash ? [namehash] : undefined,
   });
 
+  // Auction Info Parsing
   const commitEnd = info ? Number((info as any)[1]) : 0;
   const revealEnd = info ? Number((info as any)[2]) : 0;
   const highestBidder = info ? ((info as any)[4] as `0x${string}`) : undefined;
@@ -164,15 +165,6 @@ export default function FinalizeAuctionPage() {
 
       const noWinner =
         highestBidder === "0x0000000000000000000000000000000000000000";
-      // Push a notification (optional)
-      if (noWinner) {
-        add(
-          `⚠️ ${domain} expired with no valid bids - domain remains unregistered.`,
-          "warning"
-        );
-      } else {
-        add(`🎉 ${domain} has been registered!`, "success");
-      }
 
       // Show different modal based on result
       setModal({
