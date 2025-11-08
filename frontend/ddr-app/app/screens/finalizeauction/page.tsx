@@ -1,5 +1,5 @@
 "use client";
-
+// imports here
 export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,16 +16,29 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 
 /* ---------------- Small UI Components ---------------- */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold opacity-70">{title}</h3>
-      <div className="rounded-lg border border-[var(--border)] p-4">{children}</div>
+      <div className="rounded-lg border border-[var(--border)] p-4">
+        {children}
+      </div>
     </div>
   );
 }
 
-function Modal({ open, title, message, onClose }: {
+function Modal({
+  open,
+  title,
+  message,
+  onClose,
+}: {
   open: boolean;
   title: string;
   message: string;
@@ -38,7 +51,10 @@ function Modal({ open, title, message, onClose }: {
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="opacity-80 whitespace-pre-line">{message}</p>
         <div className="flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white cursor-pointer">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white cursor-pointer"
+          >
             OK
           </button>
         </div>
@@ -54,7 +70,10 @@ export default function FinalizeAuctionPage() {
   const domain = (params.get("name") || "").toLowerCase().trim();
   const currentTime = Date.now();
   const namehash = useMemo(
-    () => domain ? keccak256(encodePacked(["string"], [domain])) as `0x${string}` : undefined,
+    () =>
+      domain
+        ? (keccak256(encodePacked(["string"], [domain])) as `0x${string}`)
+        : undefined,
     [domain]
   );
 
@@ -63,7 +82,12 @@ export default function FinalizeAuctionPage() {
   const { writeContractAsync, isPending } = useWriteContract();
   const { notifications, remove, add } = useNotifications();
   const [gasEth, setGasEth] = useState("-");
-  const [modal, setModal] = useState({ open: false, title: "", message: "", onClose: () => {} });
+  const [modal, setModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onClose: () => {},
+  });
 
   /* ---- Read Auction Info ---- */
   const { data: info } = useReadContract({
@@ -82,8 +106,8 @@ export default function FinalizeAuctionPage() {
 
   const commitEnd = info ? Number((info as any)[1]) : 0;
   const revealEnd = info ? Number((info as any)[2]) : 0;
-  const highestBidder = info ? (info as any)[4] as `0x${string}` : undefined;
-  const highestBid = info ? (info as any)[5] as bigint : 0n;
+  const highestBidder = info ? ((info as any)[4] as `0x${string}`) : undefined;
+  const highestBid = info ? ((info as any)[5] as bigint) : 0n;
 
   const now = Math.floor(Date.now() / 1000);
   const phase = !commitEnd
@@ -96,7 +120,7 @@ export default function FinalizeAuctionPage() {
 
   const canFinalize = phase === "Finalize Phase" && !finalized;
 
-// ---------------- Redirect if Not Connected ----------------
+  // ---------------- Redirect if Not Connected ----------------
   useEffect(() => {
     // Wait until wagmi finishes determining connection status
     if (status === "connecting") return;
@@ -111,11 +135,11 @@ export default function FinalizeAuctionPage() {
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   /* ---- Gas Estimate ---- */
   useEffect(() => {
@@ -140,7 +164,12 @@ export default function FinalizeAuctionPage() {
   /* ---- Finalize ---- */
   async function finalizeAuction() {
     if (!canFinalize)
-      return setModal({ open: true, title: "Not Allowed", message: "Reveal window must be over.", onClose: () => setModal({ ...modal, open: false }) });
+      return setModal({
+        open: true,
+        title: "Not Allowed",
+        message: "Reveal window must be over.",
+        onClose: () => setModal({ ...modal, open: false }),
+      });
 
     try {
       await writeContractAsync({
@@ -150,19 +179,18 @@ export default function FinalizeAuctionPage() {
         args: [domain],
       });
 
-      const noWinner = highestBidder === "0x0000000000000000000000000000000000000000";
+      const noWinner =
+        highestBidder === "0x0000000000000000000000000000000000000000";
 
-
-        // Show different modal based on result
-        setModal({
-            open: true,
-            title: noWinner ? "No Valid Bids ⚠️" : "Auction Finalized ✅",
-            message: noWinner
-            ? `No bids were successfully revealed for "${domain}".\n\nThe domain remains unregistered and can be re-auctioned again.`
-            : `The winner for "${domain}" has been registered.\nThey now own the .ntu domain.`,
-            onClose: () => router.push("/screens/homepage"),
-        });
-      
+      // Show different modal based on result
+      setModal({
+        open: true,
+        title: noWinner ? "No Valid Bids ⚠️" : "Auction Finalized ✅",
+        message: noWinner
+          ? `No bids were successfully revealed for "${domain}".\n\nThe domain remains unregistered and can be re-auctioned again.`
+          : `The winner for "${domain}" has been registered.\nThey now own the .ntu domain.`,
+        onClose: () => router.push("/screens/homepage"),
+      });
     } catch (err: any) {
       setModal({
         open: true,
@@ -173,14 +201,21 @@ export default function FinalizeAuctionPage() {
     }
   }
 
-
   return (
     <div className="flex justify-center pt-16 px-4">
-      <Modal open={modal.open} title={modal.title} message={modal.message} onClose={modal.onClose} />
+      <Modal
+        open={modal.open}
+        title={modal.title}
+        message={modal.message}
+        onClose={modal.onClose}
+      />
 
       <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)] text-[var(--foreground)] p-8 space-y-8">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.push("/screens/active-auctions")} className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2 cursor-pointer">
+          <button
+            onClick={() => router.push("/screens/active-auctions")}
+            className="px-4 py-2 rounded-lg border hover:bg-[var(--foreground)]/10 flex items-center gap-2 cursor-pointer"
+          >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <ThemeToggle />
@@ -191,9 +226,18 @@ export default function FinalizeAuctionPage() {
 
         <Section title="Auction Status">
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><div className="opacity-70">Phase</div><div>{phase}</div></div>
-            <div><div className="opacity-70">Highest Bid</div><div>{formatEther(highestBid)} ETH</div></div>
-            <div><div className="opacity-70">Highest Bidder</div><div className="break-all">{highestBidder || "—"}</div></div>
+            <div>
+              <div className="opacity-70">Phase</div>
+              <div>{phase}</div>
+            </div>
+            <div>
+              <div className="opacity-70">Highest Bid</div>
+              <div>{formatEther(highestBid)} ETH</div>
+            </div>
+            <div>
+              <div className="opacity-70">Highest Bidder</div>
+              <div className="break-all">{highestBidder || "—"}</div>
+            </div>
           </div>
         </Section>
 
@@ -203,7 +247,11 @@ export default function FinalizeAuctionPage() {
             disabled={!canFinalize || isPending}
             className="px-6 py-3 rounded-lg font-semibold text-white bg-gray-700 hover:bg-gray-800 disabled:opacity-40 cursor-pointer transition"
           >
-            {isPending ? "Finalizing..." : finalized ? "Already Finalized" : "Finalize Auction"}
+            {isPending
+              ? "Finalizing..."
+              : finalized
+              ? "Already Finalized"
+              : "Finalize Auction"}
           </button>
         </div>
 

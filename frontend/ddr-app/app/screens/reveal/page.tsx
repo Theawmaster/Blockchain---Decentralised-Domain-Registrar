@@ -1,7 +1,13 @@
 "use client";
 
+// imports here
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
 import { listBids, markRevealed } from "@/app/lib/bids";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked, formatEther } from "viem";
@@ -10,24 +16,19 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 
-type AuctionInfo = [
-  string,
-  bigint,
-  bigint,
-  boolean,
-  `0x${string}`,
-  bigint
-];
+type AuctionInfo = [string, bigint, bigint, boolean, `0x${string}`, bigint]; // [highestBidder, commitEnd, revealEnd, finalized, winner, winningBid]
 
 export default function RevealPage() {
-  const router = useRouter();
-  const { address, isConnected, status } = useAccount();
-  const chainId = useChainId();
-  const publicClient = usePublicClient()!;
-  const { writeContractAsync } = useWriteContract();
+  // ---------------- Wagmi & Router Hooks ----------------
+  const router = useRouter(); // next router
+  const { address, isConnected, status } = useAccount(); // get connection status
+  const chainId = useChainId(); // get current chain ID
+  const publicClient = usePublicClient()!; // viem public client
+  const { writeContractAsync } = useWriteContract(); // write contract fn
 
-  const [pending, setPending] = useState<any[]>([]);
+  const [pending, setPending] = useState<any[]>([]); // bids ready to reveal
 
+  // ---------------- Load Bids Ready to Reveal ----------------
   useEffect(() => {
     if (!address) return;
 
@@ -37,14 +38,16 @@ export default function RevealPage() {
       const ready: any[] = [];
 
       for (let item of stored) {
-        const namehash = keccak256(encodePacked(["string"], [item.domain])) as `0x${string}`;
+        const namehash = keccak256(
+          encodePacked(["string"], [item.domain])
+        ) as `0x${string}`;
 
-        const info = await publicClient.readContract({
+        const info = (await publicClient.readContract({
           address: CONTRACTS.auctionHouse.address,
           abi: CONTRACTS.auctionHouse.abi,
           functionName: "getAuctionInfo",
           args: [namehash],
-        }) as AuctionInfo;
+        })) as AuctionInfo;
 
         const commitEnd = Number(info[1]);
         const revealEnd = Number(info[2]);
@@ -56,6 +59,7 @@ export default function RevealPage() {
     })();
   }, [address, chainId, publicClient]);
 
+  // ---------------- Reveal Bid Function ----------------
   async function reveal(item: any) {
     await writeContractAsync({
       address: CONTRACTS.auctionHouse.address,
@@ -69,30 +73,31 @@ export default function RevealPage() {
   }
 
   // ---------------- Redirect if Not Connected ----------------
-    useEffect(() => {
+  useEffect(() => {
     // Wait until wagmi finishes determining connection status
     if (status === "connecting") return;
 
     if (!isConnected || !address) {
-        router.push("/screens/authpage");
+      router.push("/screens/authpage");
     }
-    }, [isConnected, status, address, router]);
+  }, [isConnected, status, address, router]);
 
   // ---------------- Prevent Back Navigation ----------------
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   return (
     <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-        text-[var(--foreground)] p-10 space-y-8">
-
+      <div
+        className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8"
+      >
         {/* Header */}
         <div className="flex justify-between items-center">
           <button
@@ -113,9 +118,14 @@ export default function RevealPage() {
 
         <div className="space-y-4">
           {pending.map((item) => (
-            <div key={item.domain} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]">
+            <div
+              key={item.domain}
+              className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]"
+            >
               <p className="font-semibold">{item.domain}</p>
-              <p className="text-sm opacity-70">Your Bid: {formatEther(BigInt(item.bidWei))} ETH</p>
+              <p className="text-sm opacity-70">
+                Your Bid: {formatEther(BigInt(item.bidWei))} ETH
+              </p>
 
               <button
                 onClick={() => reveal(item)}

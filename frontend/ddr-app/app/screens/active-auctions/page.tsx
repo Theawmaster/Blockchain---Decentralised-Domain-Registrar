@@ -1,5 +1,5 @@
 "use client";
-
+// imports here
 import { useRouter } from "next/navigation";
 import { useAccount, useReadContract } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
@@ -10,11 +10,12 @@ import { usePublicClient } from "wagmi";
 import AppNav from "@/components/AppNav";
 
 export default function ActiveAuctionsPage() {
-    const { address, isConnected, status } = useAccount();
-    const router = useRouter();
-  const publicClient = usePublicClient();
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-  const [auctionData, setAuctionData] = useState<any[]>([]);
+  // ---------------- Wagmi & Router Hooks ----------------
+  const { address, isConnected, status } = useAccount(); // get connection status
+  const router = useRouter(); // next router
+  const publicClient = usePublicClient(); // viem public client
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000)); // current time
+  const [auctionData, setAuctionData] = useState<any[]>([]); // auction info
 
   // live ticking clock
   useEffect(() => {
@@ -30,59 +31,62 @@ export default function ActiveAuctionsPage() {
   });
 
   // ---------------- Redirect if Not Connected ----------------
-    useEffect(() => {
+  useEffect(() => {
     // Wait until wagmi finishes determining connection status
     if (status === "connecting") return;
 
     if (!isConnected || !address) {
-        router.push("/screens/authpage");
+      router.push("/screens/authpage");
     }
-    }, [isConnected, status, address, router]);
+  }, [isConnected, status, address, router]);
 
-
-    // prevent Back button navigation
+  // prevent Back button navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   // fetch full domain/timing info for each active hash
-    useEffect(() => {
+  useEffect(() => {
     async function load() {
-        if (!publicClient) return;       // ✅ prevents undefined error
-        if (!hashes || !Array.isArray(hashes)) return;
+      if (!publicClient) return; // ✅ prevents undefined error
+      if (!hashes || !Array.isArray(hashes)) return;
 
-        const result = await Promise.all(
+      const result = await Promise.all(
         hashes.map(async (h: `0x${string}`) => {
-            const info = await publicClient.readContract({
+          const info = await publicClient.readContract({
             address: CONTRACTS.auctionHouse.address,
             abi: CONTRACTS.auctionHouse.abi,
             functionName: "getAuctionInfo",
             args: [h],
-            });
+          });
 
-            const [domain, commitEnd, revealEnd] = info as [string, bigint, bigint];
+          const [domain, commitEnd, revealEnd] = info as [
+            string,
+            bigint,
+            bigint
+          ];
 
-            return {
+          return {
             namehash: h,
             domain,
             commitEnd: Number(commitEnd),
             revealEnd: Number(revealEnd),
-            };
+          };
         })
-        );
+      );
 
-        setAuctionData(result);
+      setAuctionData(result);
     }
 
     load();
-    }, [hashes, publicClient]);
+  }, [hashes, publicClient]);
 
-
+  // ---------------- Render Helper Functions ----------------
   function formatSeconds(s: number): string {
     if (s <= 0) return "—";
     const m = Math.floor(s / 60);
@@ -90,51 +94,59 @@ export default function ActiveAuctionsPage() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   }
 
+  // determine current phase of auction
   function getPhase(a: any) {
     if (now < a.commitEnd) return "Commit";
     if (now < a.revealEnd) return "Reveal";
     return "Finalize";
   }
 
-    function getButtonText(phase: string) {
-        switch (phase) {
-        case "Commit":
-            return "Commit Bid";
-        case "Reveal":
-            return "Reveal Bid";
-        default:
-            return "Finalize Auction";
-        }
+  // get button text based on phase
+  function getButtonText(phase: string) {
+    switch (phase) {
+      case "Commit":
+        return "Commit Bid";
+      case "Reveal":
+        return "Reveal Bid";
+      default:
+        return "Finalize Auction";
     }
+  }
 
-
+  // calculate time left in current phase
   function timeLeft(a: any) {
     if (now < a.commitEnd) return formatSeconds(a.commitEnd - now);
     if (now < a.revealEnd) return formatSeconds(a.revealEnd - now);
     return "—";
   }
 
-    function handleClick(a: any) {
-        const phase = getPhase(a);
+  // handle click on auction row button
+  function handleClick(a: any) {
+    const phase = getPhase(a);
 
-        if (phase === "Commit") {
-            router.push(`/screens/biddingpage?name=${encodeURIComponent(a.domain)}`);
-        } else if (phase === "Reveal") {
-            router.push(`/screens/reveal?name=${encodeURIComponent(a.domain)}`);
-        } else {
-            router.push(`/screens/finalizeauction?name=${encodeURIComponent(a.domain)}`);
-        }
+    if (phase === "Commit") {
+      router.push(`/screens/biddingpage?name=${encodeURIComponent(a.domain)}`);
+    } else if (phase === "Reveal") {
+      router.push(`/screens/reveal?name=${encodeURIComponent(a.domain)}`);
+    } else {
+      router.push(
+        `/screens/finalizeauction?name=${encodeURIComponent(a.domain)}`
+      );
     }
-
+  }
 
   return (
     <>
-      <AppNav/>
+      <AppNav />
       <div className="flex justify-center pt-16 px-4">
-        <div className="max-w-5xl w-full rounded-xl border shadow-md p-10 space-y-10
-          bg-[var(--background)] text-[var(--foreground)]">
+        <div
+          className="max-w-5xl w-full rounded-xl border shadow-md p-10 space-y-10
+          bg-[var(--background)] text-[var(--foreground)]"
+        >
           {/* Header */}
-          <h1 className="text-3xl font-extrabold text-center">Active Auctions</h1>
+          <h1 className="text-3xl font-extrabold text-center">
+            Active Auctions
+          </h1>
 
           <div className="overflow-hidden rounded-xl border border-[var(--border)]">
             <table className="min-w-full text-sm">
@@ -142,16 +154,26 @@ export default function ActiveAuctionsPage() {
                 <tr className="border-b border-[var(--border)]">
                   <th className="px-5 py-3 text-left font-semibold">Domain</th>
                   <th className="px-5 py-3 text-left font-semibold">Phase</th>
-                  <th className="px-5 py-3 text-left font-semibold">Time Left</th>
+                  <th className="px-5 py-3 text-left font-semibold">
+                    Time Left
+                  </th>
                   <th className="px-5 py-3 text-right font-semibold"></th>
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={4} className="text-center py-6 opacity-60">Loading...</td></tr>
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 opacity-60">
+                      Loading...
+                    </td>
+                  </tr>
                 ) : auctionData.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-6 opacity-60">No live auctions.</td></tr>
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 opacity-60">
+                      No live auctions.
+                    </td>
+                  </tr>
                 ) : (
                   auctionData.map((a, i) => {
                     const phase = getPhase(a);
@@ -174,10 +196,8 @@ export default function ActiveAuctionsPage() {
                   })
                 )}
               </tbody>
-
             </table>
           </div>
-
         </div>
       </div>
     </>

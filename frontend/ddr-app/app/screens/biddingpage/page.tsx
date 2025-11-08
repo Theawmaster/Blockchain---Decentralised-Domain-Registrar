@@ -1,5 +1,6 @@
 "use client";
 
+// imports here
 export const dynamic = "force-dynamic";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -19,28 +20,31 @@ import AppNav from "@/components/AppNav";
 import toast from "react-hot-toast";
 
 export default function BiddingPage() {
-  const params = useSearchParams();
-  const router = useRouter();
+  // ---------------- Hooks & Params ----------------
+  const params = useSearchParams(); // get URL params
+  const router = useRouter(); // next router
 
-  const domain = String(params.get("name") || "").trim().toLowerCase();
-  const { address, isConnected, status } = useAccount();
-  const chainId = useChainId();
-  const { writeContractAsync, isPending } = useWriteContract();
+  const domain = String(params.get("name") || "")
+    .trim()
+    .toLowerCase(); // domain name from URL
+  const { address, isConnected, status } = useAccount(); // get connection status
+  const chainId = useChainId(); // get current chain ID
+  const { writeContractAsync, isPending } = useWriteContract(); // write contract fn
 
-  const [bidEth, setBidEth] = useState("0.05");
-  const [salt, setSalt] = useState(randomSalt());
-  const [msg, setMsg] = useState("");
+  const [bidEth, setBidEth] = useState("0.05"); // bid in ETH
+  const [salt, setSalt] = useState(randomSalt()); // random salt for bid
+  const [msg, setMsg] = useState(""); // status message
 
   const { data: reservePrice } = useReadContract({
     address: CONTRACTS.auctionHouse.address,
     abi: CONTRACTS.auctionHouse.abi,
     functionName: "reservePrice",
-  });
+  }); // fetch reserve price
 
   const namehash = useMemo(
     () => keccak256(encodePacked(["string"], [domain])) as `0x${string}`,
     [domain]
-  );
+  ); // compute namehash
 
   // ---------------- Redirect if Not Connected ----------------
   useEffect(() => {
@@ -61,7 +65,7 @@ export default function BiddingPage() {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
-
+  // ---------------- Commit Bid Function ----------------
   async function commit() {
     try {
       if (!address) return setMsg("Please connect wallet first.");

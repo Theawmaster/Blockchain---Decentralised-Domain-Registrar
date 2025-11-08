@@ -1,5 +1,6 @@
 "use client";
 
+// imports here
 import { useEffect, useState } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { Layout } from "@/app/layout";
@@ -12,13 +13,14 @@ import { useSearchParams, useRouter } from "next/navigation";
 const REGISTRY = CONTRACTS.registry;
 
 export default function domainlookuppage() {
+  // ---------------- Hooks & State ----------------
   const router = useRouter();
-  
-  const { address, isConnected, status } = useAccount();
-  const [query, setQuery] = useState("");
-  const [domain, setDomain] = useState("");
-  const [owner, setOwner] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { address, isConnected, status } = useAccount(); // get connection status
+  const [query, setQuery] = useState(""); // user input domain
+  const [domain, setDomain] = useState(""); // hashed domain
+  const [owner, setOwner] = useState<string | null>(null); // owner address
+  const [isModalOpen, setIsModalOpen] = useState(false); // modal state
   // Call the contract only when the user clicks "Search"
   const { data, refetch, isFetching } = useReadContract({
     address: REGISTRY.address as `0x${string}`,
@@ -27,7 +29,7 @@ export default function domainlookuppage() {
     args: [domain as `0x${string}`],
     query: { enabled: false },
   });
-
+  // ---------------- Search Handler ----------------
   const handleSearch = async () => {
     if (!query.trim()) return;
 
@@ -50,7 +52,7 @@ export default function domainlookuppage() {
     }
   }, [isConnected, status, address, router]);
 
-
+  // ---------------- Prevent Back Navigation ----------------
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
@@ -60,12 +62,13 @@ export default function domainlookuppage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
-
   return (
     <div className="text-center">
-    <Layout/>
+      <Layout />
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-8 pt-9">
-        <h1 className="pt-9 pb-9 text-3xl font-bold">Search Registered Domain</h1>
+        <h1 className="pt-9 pb-9 text-3xl font-bold">
+          Search Registered Domain
+        </h1>
 
         <div className="flex gap-3 justify-center w-full ">
           <input
@@ -89,30 +92,29 @@ export default function domainlookuppage() {
             <p className="font-semibold">Owner Address:</p>
             <p className="font-mono text-sm break-all">{owner}</p>
             <div className="flex flex-col gap-4 sm:flex-row">
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full sm:w-auto"
-                >
-                    <Send className="w-4 h-4"/> Send Money
-                </button>
-
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full sm:w-auto"
+              >
+                <Send className="w-4 h-4" /> Send Money
+              </button>
             </div>
           </div>
         )}
 
         {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/40 p-4">
-                    <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100"
-                        >
-                            <X className="w-5 h-5"/>
-                        </button>
-                        <SendTransaction/>
-                    </div>
-                </div>
-            )}
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <SendTransaction />
+            </div>
+          </div>
+        )}
 
         {owner === null && domain && !isFetching && (
           <p className="text-red-500 mt-4">Domain not found or unregistered.</p>
