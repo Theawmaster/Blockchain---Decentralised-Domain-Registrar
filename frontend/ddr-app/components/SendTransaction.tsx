@@ -1,20 +1,26 @@
 "use client";
 
+// imports here
+
 import { useState } from "react";
 import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
 import Link from "next/link";
 
 export default function SendTransaction() {
-    const [to, setTo] = useState<`0x${string}` | "">("");
-    const [amount, setAmount] = useState("");
 
-    const { data: txHash, isPending, sendTransaction, error } = useSendTransaction();
+    const [to, setTo] = useState<`0x${string}` | "">("");               // recipient address state
+    const [amount, setAmount] = useState("");                           // amount in ETH state
+
+    const { data: txHash, isPending, sendTransaction, error } = useSendTransaction();   // wagmi send transaction hook
+
+    // wait for transaction confirmation
     const { isLoading: isConfirming, isSuccess: isConfirmed } =
         useWaitForTransactionReceipt({
             hash: txHash, // hash of transaction
         });
 
+    // handle send button click
     const handleSend = async () => {
         try {
             await sendTransaction({

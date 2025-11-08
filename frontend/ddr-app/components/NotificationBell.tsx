@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useEffect, useState, useRef } from "react";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { Bell, X } from "lucide-react";
@@ -11,21 +13,23 @@ import { keccak256, encodePacked, formatEther } from "viem";
 const DELETED_KEY = "ddr-deleted-notifications"; // ✅ key for deleted messages
 
 export default function NotificationBell() {
-  const { notifications, remove, add, clear } = useNotifications();
-  const [open, setOpen] = useState(false);
-  const publicClient = usePublicClient();
-  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
-  const [auctionData, setAuctionData] = useState<any[]>([]);
-  const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set());
-  const [refunds, setRefunds] = useState<any[]>([]);
-  const shownAlerts = useRef(new Set());
-  const chainId = useChainId();
-  const { address } = useAccount();
 
-  const currentTime = Date.now();
-  const SUPPRESS_KEY = "ddr-suppress-notifications";
+  const { notifications, remove, add, clear } = useNotifications(); // notification context              
+  const [open, setOpen] = useState(false); // dropdown open state                          
+  const publicClient = usePublicClient(); // wagmi public client
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000)); // current time in seconds
+  const [auctionData, setAuctionData] = useState<any[]>([]); // active auctions data
+  const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set()); // deleted messages set
+  const [refunds, setRefunds] = useState<any[]>([]); // available refunds data
+  const shownAlerts = useRef(new Set()); // track shown alerts to avoid duplicates
+  const chainId = useChainId(); // current chain ID
+  const { address } = useAccount(); // connected wallet address
+
+  const currentTime = Date.now(); // current time for timestamping notifications
+  const SUPPRESS_KEY = "ddr-suppress-notifications"; // key to suppress notifications
 
   /* -------------------- Helpers -------------------- */
+  // format timestamp to readable date-time
   function formatDateTime(timestamp: any) {
     const d = new Date(timestamp);
     const day = String(d.getDate()).padStart(2, "0");
@@ -37,6 +41,7 @@ export default function NotificationBell() {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   }
 
+  // format seconds to mm:ss
   function formatSeconds(s: number): string {
     if (s <= 0) return "—";
     const m = Math.floor(s / 60);
@@ -44,12 +49,14 @@ export default function NotificationBell() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   }
 
+  // get auction phase
   function getPhase(a: any) {
     if (now < a.commitEnd) return "Commit";
     if (now < a.revealEnd) return "Reveal";
     return "Finalize";
   }
 
+  // get time left in current phase
   function timeLeft(a: any) {
     if (now < a.commitEnd) return formatSeconds(a.commitEnd - now);
     if (now < a.revealEnd) return formatSeconds(a.revealEnd - now);

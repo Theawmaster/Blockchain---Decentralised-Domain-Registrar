@@ -1,15 +1,18 @@
 "use client";
 
+// imports here
 import { useEffect, useState } from "react";
 
 export default function ThemeToggle() {
+
+  // theme state
   const [theme, setTheme] = useState(
     typeof window !== "undefined" ? localStorage.theme ?? "system" : "system"
   );
 
+  // apply theme changes
   useEffect(() => {
     const root = document.documentElement;
-
     if (theme === "dark") {
       root.classList.add("dark");
       root.classList.remove("light");
@@ -27,6 +30,7 @@ export default function ThemeToggle() {
     }
   }, [theme]);
 
+  // is dark mode active
   const isDark = theme === "dark";
 
   return (

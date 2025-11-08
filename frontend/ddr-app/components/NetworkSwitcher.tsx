@@ -1,9 +1,11 @@
 "use client";
 
+// imports here
+
 import { useSwitchChain } from "wagmi";
 
 export default function NetworkSwitcher() {
-  const { chains, switchChain } = useSwitchChain();  
+  const { chains, switchChain } = useSwitchChain(); // wagmi switch chain hook 
 
   return (
     <select

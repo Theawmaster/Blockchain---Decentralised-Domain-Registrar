@@ -1,4 +1,5 @@
 "use client";
+// imports here
 
 import { Web3Provider } from "@/lib/web3/Web3Provider";
 import { NotificationProvider } from "@/app/context/NotificationContext"; // ✅ add this

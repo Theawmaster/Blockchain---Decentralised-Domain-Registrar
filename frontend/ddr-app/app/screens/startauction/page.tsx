@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useWriteContract, useAccount } from "wagmi";
@@ -9,7 +11,8 @@ import { ArrowLeft } from "lucide-react";
 
 /* Modal Component */
 function AppModal({ open, title, message, onClose }: any) {
-  if (!open) return null;
+  if (!open) return null;                          // don't render if not open
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
       <div className="bg-[var(--card-bg)] text-[var(--foreground)] border border-[var(--border)]
@@ -34,13 +37,14 @@ const normalize = (name: string) =>
     : `${name.trim().toLowerCase()}.ntu`;
 
 export default function StartAuctionPage() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const domain = normalize(params.get("name") || "");
+  const router = useRouter(); // next/router instance
+  const params = useSearchParams(); // get URL search params
+  const domain = normalize(params.get("name") || ""); // domain from URL
 
-  const { address, isConnected, status } = useAccount();
-  const { writeContractAsync, isPending } = useWriteContract();
+  const { address, isConnected, status } = useAccount();  // wagmi account hook
+  const { writeContractAsync, isPending } = useWriteContract(); // wagmi write contract hook
 
+  // ---------------- Modal State ----------------
   const [modal, setModal] = useState({
     open: false,
     title: "",
@@ -48,6 +52,7 @@ export default function StartAuctionPage() {
     onClose: () => {},
   });
 
+  // ---------------- Show Modal Helper ----------------
   const showModal = (title: string, message: string, onClose?: () => void) =>
     setModal({
       open: true,
@@ -55,7 +60,8 @@ export default function StartAuctionPage() {
       message,
       onClose: onClose ?? (() => setModal((m) => ({ ...m, open: false }))),
     });
-
+  
+    // ---------------- Start Auction Handler ----------------
   async function handleStartAuction() {
     if (!address)
       return showModal("Wallet Required", "Please connect your wallet first.");

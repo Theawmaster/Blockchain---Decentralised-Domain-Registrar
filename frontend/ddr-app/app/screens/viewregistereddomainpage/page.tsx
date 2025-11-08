@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useEffect, useState, useMemo } from "react";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
@@ -9,34 +11,35 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function ViewRegisteredDomainPage() {
-  const { address, isConnected, status } = useAccount();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { address, isConnected, status } = useAccount();  // wagmi account hook
+  const publicClient = usePublicClient(); // wagmi public client hook
+  const { writeContractAsync } = useWriteContract();  // wagmi write contract hook
 
-  const [domains, setDomains] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const router = useRouter();
+  const [domains, setDomains] = useState<any[]>([]);  // owned domains state
+  const [loaded, setLoaded] = useState(false);  // data loaded state
+  const router = useRouter(); // next.js router
 
-  // Modal State
-  const [selected, setSelected] = useState<any>(null);
-  const [input, setInput] = useState("");
-  const [mode, setMode] = useState<"resolve" | "transfer" | null>(null);
-  const [resultModal, setResultModal] = useState<null | {
+  const [selected, setSelected] = useState<any>(null);  // selected domain
+  const [input, setInput] = useState(""); // input field state
+  const [mode, setMode] = useState<"resolve" | "transfer" | null>(null);  // modal mode state
+
+  // result modal state   
+  const [resultModal, setResultModal] = useState<null | { 
     ok: boolean;
     message: string;
   }>(null);
 
-  // Search
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState(search);
+  const [search, setSearch] = useState(""); // search input state
+  const [debounced, setDebounced] = useState(search);// debounced search state
+
+  // debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 200);
     return () => clearTimeout(t);
   }, [search]);
 
-  // ---------------- Redirect if Not Connected ----------------
+  // redirect if not connected
   useEffect(() => {
-    // Wait until wagmi finishes determining connection status
     if (status === "connecting") return;
 
     if (!isConnected || !address) {
@@ -44,14 +47,15 @@ export default function ViewRegisteredDomainPage() {
     }
   }, [isConnected, status, address, router]);
 
-    /* -------- Prevent browser back -------- */
-    useEffect(() => {
-      window.history.pushState(null, "", window.location.href);
-      const handlePop = () => window.history.pushState(null, "", window.location.href);
-      window.addEventListener("popstate", handlePop);
-      return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  // prevent back navigation
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePop = () => window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
 
+  // fetch owned domains
   useEffect(() => {
     if (!address || !publicClient) return;
 
@@ -93,6 +97,7 @@ export default function ViewRegisteredDomainPage() {
     })();
   }, [address, publicClient]);
 
+  // submit modal action
   async function submit() {
     if (!isAddress(input)) {
       setResultModal({ ok: false, message: "❌ Invalid wallet address." });
@@ -149,17 +154,20 @@ export default function ViewRegisteredDomainPage() {
     closeModal();
   }
 
+  // open modal with mode
   function openModal(domain: any, m: "resolve" | "transfer") {
     setSelected(domain);
     setInput("");
     setMode(m);
   }
 
+  // close modal
   function closeModal() {
     setSelected(null);
     setMode(null);
   }
 
+  // prevent back navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {

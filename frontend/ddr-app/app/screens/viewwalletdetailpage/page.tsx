@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useAccount, useBalance } from "wagmi";
 import { Copy, Wallet, Coins } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -10,10 +12,11 @@ import toast from "react-hot-toast";
 import { useEffect } from "react";
 
 export default function ViewWalletDetailPage() {
-  const router = useRouter();
-  const { address, isConnected, status } = useAccount();
-  const { data: balance } = useBalance({ address });
+  const router = useRouter(); // next.js router
+  const { address, isConnected, status } = useAccount();  // wagmi account hook
+  const { data: balance } = useBalance({ address });  // wagmi balance hook
 
+  // ---------------- Copy Address to Clipboard ----------------
   const handleCopy = () => {
     if (!address) {
       toast.error("No address to copy!");
@@ -33,7 +36,7 @@ export default function ViewWalletDetailPage() {
   }, [isConnected, status, address, router]);
 
 
-  // Disable Back Button
+  // ---------------- Prevent Back Navigation ----------------
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {

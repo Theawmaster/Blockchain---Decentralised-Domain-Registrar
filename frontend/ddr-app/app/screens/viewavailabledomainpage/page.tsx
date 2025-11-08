@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useReadContract, usePublicClient, useAccount } from "wagmi";
@@ -8,10 +10,14 @@ import { keccak256, encodePacked } from "viem";
 import AppNav from "@/components/AppNav";
 
 /* -------------------- helpers -------------------- */
+// normalize input to .ntu domain
+
 const normalize = (s: string) => {
   const x = s.trim().toLowerCase();
   return x.endsWith(".ntu") ? x : x ? `${x}.ntu` : x;
 };
+
+// validate .ntu domain
 
 const isValidDotNtu = (s: string) => {
   const x = normalize(s);
@@ -22,10 +28,12 @@ const isValidDotNtu = (s: string) => {
   return x.endsWith(".ntu");
 };
 
-const isAddress = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s);
-const isDomain = (s: string) => s.endsWith(".ntu");
+const isAddress = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s); // simple Ethereum address check
+const isDomain = (s: string) => s.endsWith(".ntu"); // simple .ntu domain check
 
 /* -------------------- modals -------------------- */
+// invalid domain modal
+
 function DomainErrorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
   return (
@@ -43,6 +51,7 @@ function DomainErrorModal({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
+// domain taken modal
 function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
   return (
@@ -62,41 +71,37 @@ function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => voi
 
 /* -------------------- main page -------------------- */
 export default function ViewAvailableDomainPage() {
-  const router = useRouter();
-  const { address, isConnected, status } = useAccount();
-  const publicClient = usePublicClient();
 
-  // start auction UI
-  const [rawInput, setRawInput] = useState("");
-  const canStart = isValidDotNtu(rawInput);
-  const normalized = normalize(rawInput);
+  const router = useRouter(); // next.js router
+  const { address, isConnected, status } = useAccount();  // wagmi account hook
+  const publicClient = usePublicClient(); // wagmi public client hook
 
-  // search UI
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const [rawInput, setRawInput] = useState(""); // raw input state
+  const canStart = isValidDotNtu(rawInput); // can start auction flag
+  const normalized = normalize(rawInput); // normalized input
 
-  // modals
-  const [showError, setShowError] = useState(false);
-  const [showTakenModal, setShowTakenModal] = useState(false);
+  const [search, setSearch] = useState("");  // search input state
+  const [debounced, setDebounced] = useState(""); // debounced search input state
 
-  // registry data
+  const [showError, setShowError] = useState(false);  // show invalid domain modal
+  const [showTakenModal, setShowTakenModal] = useState(false);  // show domain taken modal
+
+  // fetch all domain names from contract
   const { data: allNames, isLoading } = useReadContract({
     address: CONTRACTS.registry.address,
     abi: CONTRACTS.registry.abi,
     functionName: "getAllNames",
     query: { refetchInterval: 3000, staleTime: 0 },
   });
-  const domains: string[] = Array.isArray(allNames) ? (allNames as string[]) : [];
 
-  // resolve cache (domain -> "Resolved"/"Not Resolved")
-  const [resolveStatus, setResolveStatus] = useState<Record<string, string>>({});
+  const domains: string[] = Array.isArray(allNames) ? (allNames as string[]) : [];  // all domain names
 
-  // names owned by a given address
-  const [namesByOwner, setNamesByOwner] = useState<string[]>([]);
-  const [loadingNames, setLoadingNames] = useState(false);
+  const [resolveStatus, setResolveStatus] = useState<Record<string, string>>({}); // resolve status cache
 
-  // reverse resolution matches for an address
-  const [reverseMatches, setReverseMatches] = useState<string[]>([]);
+  const [namesByOwner, setNamesByOwner] = useState<string[]>([]);  // names owned by searched address
+  const [loadingNames, setLoadingNames] = useState(false);  //  loading owned names state
+
+  const [reverseMatches, setReverseMatches] = useState<string[]>([]); // domains resolving to searched address
 
   // domain info card
   const [domainInfo, setDomainInfo] = useState<{
@@ -106,9 +111,9 @@ export default function ViewAvailableDomainPage() {
     expiry: string | null;
   } | null>(null);
   
-  // ---------------- Redirect if Not Connected ----------------
+
+  // redirect if not connected
   useEffect(() => {
-    // Wait until wagmi finishes determining connection status
     if (status === "connecting") return;
 
     if (!isConnected || !address) {
@@ -117,7 +122,7 @@ export default function ViewAvailableDomainPage() {
   }, [isConnected, status, address, router]);
 
 
-  /* -------- Prevent browser back -------- */
+  // prevent back navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => window.history.pushState(null, "", window.location.href);
@@ -125,13 +130,13 @@ export default function ViewAvailableDomainPage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
-  /* -------- Debounce search -------- */
+  // debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim().toLowerCase()), 200);
     return () => clearTimeout(t);
   }, [search]);
 
-  /* -------- When searching by address: fetch owned names -------- */
+  // fetch names owned by address
   useEffect(() => {
     (async () => {
       if (!publicClient) return;
@@ -157,7 +162,7 @@ export default function ViewAvailableDomainPage() {
     })();
   }, [debounced, publicClient]);
 
-  /* -------- Reverse resolution: domains resolving to address -------- */
+  // fetch reverse resolved domains
   useEffect(() => {
     (async () => {
       if (!publicClient) return;
@@ -185,7 +190,7 @@ export default function ViewAvailableDomainPage() {
     })();
   }, [debounced, domains, resolveStatus, publicClient]);
 
-  /* -------- Domain card: owner/resolve/expiry -------- */
+  // fetch domain info for card
   useEffect(() => {
     (async () => {
       if (!publicClient) return;
@@ -228,7 +233,7 @@ export default function ViewAvailableDomainPage() {
     })();
   }, [debounced, publicClient]);
 
-  /* -------- Resolve status cache for list/table -------- */
+  // fetch resolve status for domain
   async function fetchResolveStatus(domain: string) {
     try {
       const resolved = (await publicClient?.readContract({
@@ -245,8 +250,9 @@ export default function ViewAvailableDomainPage() {
     }
   }
 
+  // fetch resolve status when searching
   useEffect(() => {
-    // keep the list hydrated as user scrolls/filters
+    
     const pool = debounced ? domains.filter((n) => n.toLowerCase().includes(debounced)) : domains;
     pool.forEach((d) => {
       if (!resolveStatus[d]) void fetchResolveStatus(d);
@@ -254,7 +260,7 @@ export default function ViewAvailableDomainPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domains, debounced, publicClient]);
 
-  /* -------- Filter logic for fallback table -------- */
+ // filtered domains for table view
   const filtered = useMemo(() => {
     if (isAddress(debounced)) {
       // show only resolved names owned by that address in the table view
@@ -264,7 +270,7 @@ export default function ViewAvailableDomainPage() {
     return domains.filter((n) => n.toLowerCase().includes(debounced));
   }, [domains, debounced, namesByOwner, resolveStatus]);
 
-  /* -------- Start auction -------- */
+  // start auction action
   async function startAuction() {
     if (!canStart) {
       setShowError(true);
@@ -288,6 +294,7 @@ export default function ViewAvailableDomainPage() {
     router.push(`/screens/startauction?name=${encodeURIComponent(name)}`);
   }
 
+  // handle enter key in input
   function onEnter(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") startAuction();
   }

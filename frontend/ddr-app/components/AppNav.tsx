@@ -1,5 +1,7 @@
 "use client";
 
+// imports here
+
 import { useState, useEffect } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
@@ -12,21 +14,23 @@ import { HelpCircle } from "lucide-react";
 import OnboardingModal from "@/components/OnboardingModal";
 
 export default function AppNav() {
-  const router = useRouter();
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
+  const router = useRouter(); // next.js router
+  const { address, isConnected } = useAccount();  // wagmi account hook
+  const { disconnect } = useDisconnect(); // wagmi disconnect hook
 
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [mounted, setMounted] = useState(false);  // mounted state for client-side rendering
+  const [open, setOpen] = useState(false);  // dropdown menu open state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);  // logout modal state
+  const [showOnboarding, setShowOnboarding] = useState(false);  // onboarding modal state
 
+  // redirect to auth page if not connected
   useEffect(() => {
     if (!isConnected) {
       router.replace("/screens/authpage"); // prevents history back access
     }
   }, [isConnected]);
 
+  // show onboarding modal on first visit
   useEffect(() => {
     const seen = localStorage.getItem("hasSeenOnboarding");
     if (!seen) {
@@ -35,6 +39,7 @@ export default function AppNav() {
     }
   }, []);
 
+  // set mounted to true on client-side
   useEffect(() => setMounted(true), []);
 
   // Wait until mounted to render client-dependent UI
@@ -108,19 +113,19 @@ export default function AppNav() {
             "
           >
             <button
-  onClick={() => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(address!);
-      toast.success("Address copied!");
-    } else {
-      console.warn("Clipboard API not available");
-      toast.error("Clipboard not supported in this environment.");
-    }
-  }}
-  className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
->
-  📋 Copy Address
-</button>
+              onClick={() => {
+                if (typeof navigator !== "undefined" && navigator.clipboard) {
+                  navigator.clipboard.writeText(address!);
+                  toast.success("Address copied!");
+                } else {
+                  console.warn("Clipboard API not available");
+                  toast.error("Clipboard not supported in this environment.");
+                }
+              }}
+              className="hover:bg-[var(--foreground)] hover:text-[var(--background)] rounded px-3 py-2 text-left transition cursor-pointer"
+            >
+              📋 Copy Address
+            </button>
 
             <button
               onClick={() => router.push("/screens/viewwalletdetailpage")}

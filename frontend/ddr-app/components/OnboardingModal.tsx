@@ -1,10 +1,13 @@
 "use client";
 
+// imports here
+
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ArrowRight, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 
+// onboarding slides data
 const slides = [
   {
     title: "Welcome to D-Domain",
@@ -24,9 +27,10 @@ const slides = [
 ];
 
 export default function OnboardingModal({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
-  const [step, setStep] = React.useState(0);
 
-  if (!open) return null;
+  const [step, setStep] = React.useState(0);            // current slide step
+
+  if (!open) return null;                               // don't render if not open
 
   return (
     <AnimatePresence>

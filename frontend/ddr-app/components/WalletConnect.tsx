@@ -1,13 +1,15 @@
 "use client";
 
+// imports here
 import { useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 export default function WalletConnect({ onAddWallet }: { onAddWallet: (address: string) => void }) {
-  const { connectAsync, connectors, reset, error, status } = useConnect();
-  const { disconnect } = useDisconnect();
-  const [loading, setLoading] = useState(false);
+  const { connectAsync, connectors, reset, error, status } = useConnect();  // wagmi connect hook
+  const { disconnect } = useDisconnect();                                   // wagmi disconnect hook                  
+  const [loading, setLoading] = useState(false);                            // loading state        
 
+  // handle wallet connection
   const handleConnect = async () => {
     try {
       setLoading(true);
@@ -22,6 +24,7 @@ export default function WalletConnect({ onAddWallet }: { onAddWallet: (address: 
       setLoading(false);
     }
   };
+
 
   return (
     <div
