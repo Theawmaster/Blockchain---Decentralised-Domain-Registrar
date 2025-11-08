@@ -71,7 +71,7 @@ export default function StartAuctionPage() {
       showModal(
         "Auction Started ✅",
         `The auction for ${domain} has begun.`,
-        () => router.push("/screens/active-auctions")
+        () => router.push("/screens/homepage")
       );
     } catch (err: any) {
       showModal("Transaction Failed ❌", err?.shortMessage || "Please try again.");

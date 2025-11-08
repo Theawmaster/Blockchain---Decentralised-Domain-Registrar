@@ -185,13 +185,6 @@ export default function FinalizeAuctionPage() {
           </div>
         </Section>
 
-        <Section title="Transaction">
-          <div className="flex justify-between text-sm">
-            <div className="opacity-70">Estimated Gas</div>
-            <div>{gasEth !== "-" ? `${Number(gasEth).toFixed(6)} ETH` : "—"}</div>
-          </div>
-        </Section>
-
         <div className="flex justify-center">
           <button
             onClick={finalizeAuction}

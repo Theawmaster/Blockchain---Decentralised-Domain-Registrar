@@ -1,7 +1,7 @@
 "use client";
 
 import { useAccount, useBalance } from "wagmi";
-import { Copy, Wallet, ArrowLeft } from "lucide-react";
+import { Copy, Wallet, Coins } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import NetworkSwitcher from "@/components/NetworkSwitcher";
@@ -18,7 +18,7 @@ export default function ViewWalletDetailPage() {
     if (!address) {
       toast.error("No address to copy!");
       return;
-    } 
+    }
     toast.success("Address copied to clipboard!");
     navigator.clipboard.writeText(address);
   };
@@ -39,6 +39,7 @@ export default function ViewWalletDetailPage() {
     );
   }
 
+  // Disable Back Button
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
@@ -59,8 +60,6 @@ export default function ViewWalletDetailPage() {
           <h1 className="text-3xl font-extrabold text-center">
             Wallet Details
           </h1>
-
-          
 
           {/* Wallet Info */}
           <div
@@ -89,17 +88,29 @@ export default function ViewWalletDetailPage() {
 
           {/* Balance */}
           <div
-            className="border rounded-lg p-6 text-center
-            transition-all duration-200
-            hover:shadow-md hover:-translate-y-[1px]
-            hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            className="border rounded-lg p-5 flex items-center justify-between
+              transition-all duration-200
+              hover:shadow-md hover:-translate-y-[1px]
+              hover:bg-gray-50 dark:hover:bg-gray-800/50"
           >
-            <p className="text-sm opacity-60">Total Balance</p>
-            <p className="text-2xl font-bold mt-2">
-              {balance
-                ? `${balance.formatted} ${balance.symbol}`
-                : "Loading..."}
-            </p>
+            <div className="flex items-center gap-4">
+
+            {/* Balance Icon */}
+            <div
+              className="flex items-center justify-center w-14 h-14 rounded-full
+              bg-black-800 dark:bg-white-500 border shadow-sm"
+            >
+              <Coins className="w-7 h-7 text-white-600 dark:text-black-800" />
+            </div>
+
+              <p className="text-sm opacity-60">Total Balance</p>
+              <p className="text-2xl font-bold mt-2">
+                {balance
+                  ? `${balance.formatted} ${balance.symbol}`
+                  : "Loading..."}
+              </p>
+            </div>
+
           </div>
 
           {/* Controls Row */}

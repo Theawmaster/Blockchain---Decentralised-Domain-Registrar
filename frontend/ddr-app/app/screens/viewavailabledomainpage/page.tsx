@@ -52,7 +52,7 @@ function DomainTakenModal({ open, onClose }: { open: boolean; onClose: () => voi
         <p className="opacity-80">
           This domain is already owned. You can only start auctions for <strong>unregistered</strong> domains.
         </p>
-        <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer">
           Ok
         </button>
       </div>
@@ -306,7 +306,7 @@ export default function ViewAvailableDomainPage() {
               <button
                 onClick={startAuction}
                 disabled={!canStart}
-                className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-5 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 Start Auction
               </button>
@@ -348,14 +348,14 @@ export default function ViewAvailableDomainPage() {
               <div>
                 <p className="font-semibold mb-1">Domains Owned</p>
                 <div className="space-y-1 opacity-90">
-                  {namesByOwner.length ? namesByOwner.map(n => <p key={n}>{n}</p>) : "None"}
+                  {namesByOwner.length ? [...namesByOwner].reverse().map(n => <p key={n}>{n}</p>) : "None"}
                 </div>
               </div>
 
               <div>
                 <p className="font-semibold mb-1">Reverse Resolved</p>
                 <div className="space-y-1 opacity-90">
-                  {reverseMatches.length ? reverseMatches.map(n => <p key={n}>{n}</p>) : "None"}
+                  {reverseMatches.length ? [...reverseMatches].reverse().map(n => <p key={n}>{n}</p>) : "None"}
                 </div>
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function ViewAvailableDomainPage() {
                       <td colSpan={2} className="px-5 py-6 opacity-60 text-center">Loading…</td>
                     </tr>
                   ) : filtered.length ? (
-                    filtered.map((name) => (
+                    [...filtered].reverse().map((name) => (
                       <tr key={name} className="border-b border-[var(--border)] hover:bg-[var(--foreground)]/10 transition">
                         <td className="px-5 py-3 font-medium">{name}</td>
                       </tr>

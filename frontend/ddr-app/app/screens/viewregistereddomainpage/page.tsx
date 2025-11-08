@@ -215,10 +215,9 @@ export default function ViewRegisteredDomainPage() {
                         onClick={() => !hasResolve && openModal(d, "resolve")}
                         disabled={hasResolve}
                         className={`px-3 py-1 rounded-md text-sm transition
-                          ${
-                            hasResolve
-                              ? "bg-gray-500 opacity-60 cursor-not-allowed"
-                              : "px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
+                          ${hasResolve
+                            ? "bg-gray-500 opacity-60 cursor-not-allowed"
+                            : "bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
                           }`}
                       >
                         {hasResolve ? "Already Resolved" : "Set Resolve"}
@@ -256,7 +255,7 @@ export default function ViewRegisteredDomainPage() {
                   </button>
                   <button
                     onClick={submit}
-                    className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
+                    className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
                   >
                     Confirm
                   </button>
@@ -275,7 +274,7 @@ export default function ViewRegisteredDomainPage() {
                 <p className="opacity-80 text-sm">{resultModal.message}</p>
                 <button
                   onClick={() => setResultModal(null)}
-                  className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition cursor-pointer"
+                  className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-700 text-white w-full cursor-pointer"
                 >
                   Close
                 </button>

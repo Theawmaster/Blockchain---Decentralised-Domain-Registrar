@@ -8,6 +8,7 @@ import { keccak256, encodePacked, formatEther } from "viem";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 type AuctionInfo = [
   string,
@@ -62,7 +63,7 @@ export default function RevealPage() {
       functionName: "revealBid",
       args: [item.domain, BigInt(item.bidWei), item.salt],
     });
-
+    toast.success(`Revealed bid for ${item.domain}`);
     markRevealed(chainId, address!, item.domain);
     setPending((p) => p.filter((x) => x.domain !== item.domain));
   }
@@ -107,7 +108,7 @@ export default function RevealPage() {
 
               <button
                 onClick={() => reveal(item)}
-                className="mt-3 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition cursor-pointer"
+                className="mt-3 px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition cursor-pointer"
               >
                 Reveal Bid
               </button>
