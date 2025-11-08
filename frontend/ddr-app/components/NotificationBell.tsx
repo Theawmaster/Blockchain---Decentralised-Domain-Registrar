@@ -251,7 +251,10 @@ export default function NotificationBell() {
     <div className="relative">
       {/* Bell Button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+            localStorage.removeItem("ddr-suppress-notifications"); // 🌙 Wake the bell
+            setOpen((o) => !o);
+        }}
         className="relative p-2 rounded hover:bg-[var(--foreground)]/25 transition cursor-pointer"
       >
         <Bell className="w-6 h-6" />
