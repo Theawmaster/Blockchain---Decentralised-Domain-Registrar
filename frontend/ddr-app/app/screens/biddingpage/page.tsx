@@ -1,5 +1,6 @@
 "use client";
 
+// imports here
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -17,9 +18,9 @@ import { ArrowLeft } from "lucide-react";
 import AppNav from "@/components/AppNav";
 
 export default function BiddingPage() {
+  // hooks
   const params = useSearchParams();
   const router = useRouter();
-
   const domain = String(params.get("name") || "")
     .trim()
     .toLowerCase();
@@ -42,6 +43,7 @@ export default function BiddingPage() {
     [domain]
   );
 
+  // prevent Back button navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
@@ -51,6 +53,7 @@ export default function BiddingPage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
+  // commit bid handler
   async function commit() {
     try {
       if (!address) return setMsg("Please connect wallet first.");

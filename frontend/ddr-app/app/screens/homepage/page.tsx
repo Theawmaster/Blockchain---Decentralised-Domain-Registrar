@@ -1,5 +1,5 @@
 "use client";
-
+// imports here
 import { Wallet, Globe, Gavel, BadgeCheck, Undo2 } from "lucide-react";
 import {
   useAccount,
@@ -15,6 +15,7 @@ import { listBids } from "@/app/lib/bids";
 import { formatEther } from "viem";
 
 export default function HomePage() {
+  // hooks
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const [domains, setDomains] = useState<any[]>([]);
@@ -32,7 +33,7 @@ export default function HomePage() {
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
-
+  // ---------------- Fetch Owned Domains ----------------
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {

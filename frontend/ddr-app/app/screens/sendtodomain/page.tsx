@@ -1,7 +1,13 @@
 "use client";
 
+// imports here
 import { useState, useEffect } from "react";
-import { useAccount, useBalance, usePublicClient, useSendTransaction } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  usePublicClient,
+  useSendTransaction,
+} from "wagmi";
 import { parseEther } from "viem";
 import { CONTRACTS } from "@/lib/web3/contract";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -9,6 +15,7 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function SendToDomainPage() {
+  // hooks
   const router = useRouter();
   const { address } = useAccount();
   const publicClient = usePublicClient()!;
@@ -22,6 +29,7 @@ export default function SendToDomainPage() {
   const [resolved, setResolved] = useState<`0x${string}` | null>(null);
   const [msg, setMsg] = useState("");
 
+  // domain owner lookup
   async function lookup() {
     if (!domain.endsWith(".ntu")) {
       setMsg("❌ Domain must end with .ntu");
@@ -30,12 +38,12 @@ export default function SendToDomainPage() {
     }
 
     try {
-      const addr = await publicClient.readContract({
+      const addr = (await publicClient.readContract({
         address: CONTRACTS.registry.address,
         abi: CONTRACTS.registry.abi,
         functionName: "resolve",
         args: [domain.toLowerCase()],
-      }) as `0x${string}`;
+      })) as `0x${string}`;
 
       setResolved(addr);
 
@@ -44,20 +52,22 @@ export default function SendToDomainPage() {
       } else {
         setMsg(`✅ Resolved to wallet: ${addr}`);
       }
-
     } catch {
       setMsg("❌ Domain not found on registry.");
       setResolved(null);
     }
   }
 
+  // set max amount handler
   function setMax() {
     // Leave room for gas fees
     setAmount((balance * 0.999).toFixed(5));
   }
 
+  // send ETH handler
   async function send() {
-    if (!resolved || resolved === "0x0000000000000000000000000000000000000000") return;
+    if (!resolved || resolved === "0x0000000000000000000000000000000000000000")
+      return;
 
     if (Number(amount) <= 0 || Number(amount) > balance) {
       setMsg("❌ Invalid amount (cannot exceed wallet balance).");
@@ -76,22 +86,20 @@ export default function SendToDomainPage() {
     }
   }
 
+  // prevent Back button navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   return (
     <>
-    <AppNav/>
+      <AppNav />
       <div className="max-w-lg mx-auto space-y-6 p-6 text-[var(--foreground)]">
-
-        
-
         <h1 className="text-2xl font-bold text-center">Send ETH to Domain</h1>
 
         {/* Domain Input */}
@@ -112,39 +120,40 @@ export default function SendToDomainPage() {
         {msg && <p className="text-center text-sm">{msg}</p>}
 
         {/* Wallet + Send Box */}
-        {resolved && resolved !== "0x0000000000000000000000000000000000000000" && (
-          <div className="space-y-3">
+        {resolved &&
+          resolved !== "0x0000000000000000000000000000000000000000" && (
+            <div className="space-y-3">
+              {/* Wallet Balance Display */}
+              <p className="text-sm opacity-80">
+                💰 Wallet Balance: {balance.toFixed(4)} ETH
+              </p>
 
-            {/* Wallet Balance Display */}
-            <p className="text-sm opacity-80">
-              💰 Wallet Balance: {balance.toFixed(4)} ETH
-            </p>
+              <div className="flex gap-2">
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="border p-2 w-full rounded bg-[var(--background)]"
+                  placeholder="Amount (ETH)"
+                />
+                <button
+                  onClick={setMax}
+                  className="px-3 py-1 border rounded hover:bg-[var(--foreground)] hover:text-[var(--background)] transition cursor-pointer"
+                >
+                  MAX
+                </button>
+              </div>
 
-            <div className="flex gap-2">
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="border p-2 w-full rounded bg-[var(--background)]"
-                placeholder="Amount (ETH)"
-              />
               <button
-                onClick={setMax}
-                className="px-3 py-1 border rounded hover:bg-[var(--foreground)] hover:text-[var(--background)] transition cursor-pointer" 
+                onClick={send}
+                disabled={
+                  !amount || Number(amount) <= 0 || Number(amount) > balance
+                }
+                className="bg-green-600 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-green-700 transition"
               >
-                MAX
+                Send ETH
               </button>
             </div>
-
-            <button
-              onClick={send}
-              disabled={!amount || Number(amount) <= 0 || Number(amount) > balance}
-              className="bg-green-600 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-green-700 transition"
-            >
-              Send ETH
-            </button>
-
-          </div>
-        )}
+          )}
       </div>
     </>
   );

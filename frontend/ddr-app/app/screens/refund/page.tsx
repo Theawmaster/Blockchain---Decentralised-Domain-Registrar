@@ -1,7 +1,12 @@
 "use client";
-
+// imports here
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { listBids } from "@/app/lib/bids";
 import { keccak256, encodePacked, formatEther } from "viem";
@@ -12,6 +17,7 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function RefundPage() {
+  // hooks
   const { address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
@@ -19,7 +25,7 @@ export default function RefundPage() {
   const { writeContractAsync } = useWriteContract();
 
   const [refunds, setRefunds] = useState<any[]>([]);
-
+  // fetch refundable deposits
   useEffect(() => {
     if (!address || !publicClient) return; // ✅ prevent undefined crash
 
@@ -31,18 +37,18 @@ export default function RefundPage() {
         const namehash = keccak256(encodePacked(["string"], [item.domain]));
 
         const [finalized, deposit] = await Promise.all([
-        publicClient.readContract({
+          publicClient.readContract({
             address: CONTRACTS.auctionHouse.address,
             abi: CONTRACTS.auctionHouse.abi,
             functionName: "isFinalized",
             args: [namehash],
-        }) as Promise<boolean>,
-        publicClient.readContract({
+          }) as Promise<boolean>,
+          publicClient.readContract({
             address: CONTRACTS.auctionHouse.address,
             abi: CONTRACTS.auctionHouse.abi,
             functionName: "getDeposit",
             args: [namehash, address],
-        }) as Promise<bigint>,
+          }) as Promise<bigint>,
         ]);
 
         if (finalized && deposit > 0n) {
@@ -54,6 +60,7 @@ export default function RefundPage() {
     })();
   }, [address, chainId, publicClient]);
 
+  // withdraw handler
   async function handleWithdraw(r: any) {
     await writeContractAsync({
       address: CONTRACTS.auctionHouse.address,
@@ -66,42 +73,48 @@ export default function RefundPage() {
     setRefunds((x) => x.filter((i) => i.namehash !== r.namehash));
   }
 
+  // prevent Back button navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   return (
     <>
-    <AppNav/>
-    <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-xl w-full rounded-xl border bg-[var(--background)] text-[var(--foreground)] shadow-md p-8 space-y-6">
-        <h1 className="text-2xl font-bold text-center">Withdraw Refunds</h1>
+      <AppNav />
+      <div className="flex justify-center pt-16 px-4">
+        <div className="max-w-xl w-full rounded-xl border bg-[var(--background)] text-[var(--foreground)] shadow-md p-8 space-y-6">
+          <h1 className="text-2xl font-bold text-center">Withdraw Refunds</h1>
 
-        {refunds.length === 0 ? (
-          <p className="text-center opacity-60">No refundable deposits.</p>
-        ) : (
-          refunds.map((r) => (
-            <div key={r.domain} className="border px-4 py-3 rounded-lg flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{r.domain}</p>
-                <p className="text-sm opacity-70">{formatEther(r.deposit)} ETH</p>
-              </div>
-              <button
-                onClick={() => handleWithdraw(r)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+          {refunds.length === 0 ? (
+            <p className="text-center opacity-60">No refundable deposits.</p>
+          ) : (
+            refunds.map((r) => (
+              <div
+                key={r.domain}
+                className="border px-4 py-3 rounded-lg flex items-center justify-between"
               >
-                Withdraw
-              </button>
-            </div>
-          ))
-        )}
+                <div>
+                  <p className="font-semibold">{r.domain}</p>
+                  <p className="text-sm opacity-70">
+                    {formatEther(r.deposit)} ETH
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleWithdraw(r)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                >
+                  Withdraw
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
     </>
   );
 }

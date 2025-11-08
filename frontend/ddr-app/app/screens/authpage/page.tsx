@@ -1,5 +1,6 @@
 "use client";
 
+// imports here
 import { redirect, RedirectType } from "next/navigation";
 import { useAccount } from "wagmi";
 import WalletConnect from "@/components/WalletConnect";
@@ -9,6 +10,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export default function AuthPage() {
+  // hooks
   const { isConnected } = useAccount();
   const [hasMetaMask, setHasMetaMask] = useState(true);
   const [isCorrectBrowser, setIsCorrectBrowser] = useState(true);
@@ -22,12 +24,14 @@ export default function AuthPage() {
     setHasMetaMask(typeof window !== "undefined" && (window as any).ethereum);
   }, []);
 
+  // redirect if already connected
   if (isConnected) redirect("/screens/homepage", RedirectType.push);
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 pt-20 gap-10
-      bg-[var(--background)] text-[var(--foreground)] transition-colors">
-
+    <div
+      className="min-h-screen flex flex-col items-center px-4 pt-20 gap-10
+      bg-[var(--background)] text-[var(--foreground)] transition-colors"
+    >
       <ThemeToggle />
 
       {/* Header */}
@@ -36,8 +40,8 @@ export default function AuthPage() {
           Decentralized Domain Registrar
         </h1>
         <p className="mt-4 text-lg opacity-80 leading-relaxed">
-          Claim human-readable blockchain names.  
-          Bid privately. Reveal fairly. Own autonomously.
+          Claim human-readable blockchain names. Bid privately. Reveal fairly.
+          Own autonomously.
         </p>
         <div className="mt-6 flex justify-center">
           <Image
@@ -78,15 +82,19 @@ export default function AuthPage() {
       {/* Connection Button */}
       {isCorrectBrowser && hasMetaMask && (
         <div className="active:scale-[0.97] transition">
-          <WalletConnect onAddWallet={function (address: string): void {
-            throw new Error("Function not implemented.");
-          } } />
+          <WalletConnect
+            onAddWallet={function (address: string): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         </div>
       )}
 
       {/* App Expectations */}
       <section className="mt-10 max-w-lg w-full border rounded-xl p-6 shadow-sm bg-[var(--card-bg)]">
-        <h2 className="font-semibold text-center mb-4 text-xl">What to Expect</h2>
+        <h2 className="font-semibold text-center mb-4 text-xl">
+          What to Expect
+        </h2>
         <Step text="Search or bid for a domain like `kevin.ntu`" />
         <Step text="Commit your bid privately (nobody sees your price yet)" />
         <Step text="Reveal your bid later where highest valid bid wins" />
@@ -102,6 +110,7 @@ export default function AuthPage() {
   );
 }
 
+// Step Component
 function Step({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 py-1">
@@ -111,10 +120,13 @@ function Step({ text }: { text: string }) {
   );
 }
 
+// Warning Box Component
 function WarningBox({ message, link, linkLabel }: any) {
   return (
-    <div className="border border-yellow-500 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200 
-      px-4 py-3 rounded-lg text-sm max-w-md text-center animate-fadeIn">
+    <div
+      className="border border-yellow-500 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200 
+      px-4 py-3 rounded-lg text-sm max-w-md text-center animate-fadeIn"
+    >
       {message}{" "}
       <Link href={link} target="_blank" className="underline font-medium">
         {linkLabel}

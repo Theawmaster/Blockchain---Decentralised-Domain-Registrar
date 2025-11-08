@@ -1,32 +1,31 @@
 "use client";
-
+// imports here
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
 import { listBids, markRevealed } from "@/app/lib/bids";
 import { CONTRACTS } from "@/lib/web3/contract";
 import { keccak256, encodePacked, formatEther } from "viem";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
-
-type AuctionInfo = [
-  string,
-  bigint,
-  bigint,
-  boolean,
-  `0x${string}`,
-  bigint
-];
+// Define AuctionInfo type
+type AuctionInfo = [string, bigint, bigint, boolean, `0x${string}`, bigint];
 
 export default function RevealPage() {
+  // hooks
   const router = useRouter();
   const { address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient()!;
   const { writeContractAsync } = useWriteContract();
-
   const [pending, setPending] = useState<any[]>([]);
 
+  // fetch bids that are ready to reveal
   useEffect(() => {
     if (!address) return;
 
@@ -36,14 +35,16 @@ export default function RevealPage() {
       const ready: any[] = [];
 
       for (let item of stored) {
-        const namehash = keccak256(encodePacked(["string"], [item.domain])) as `0x${string}`;
+        const namehash = keccak256(
+          encodePacked(["string"], [item.domain])
+        ) as `0x${string}`;
 
-        const info = await publicClient.readContract({
+        const info = (await publicClient.readContract({
           address: CONTRACTS.auctionHouse.address,
           abi: CONTRACTS.auctionHouse.abi,
           functionName: "getAuctionInfo",
           args: [namehash],
-        }) as AuctionInfo;
+        })) as AuctionInfo;
 
         const commitEnd = Number(info[1]);
         const revealEnd = Number(info[2]);
@@ -55,6 +56,7 @@ export default function RevealPage() {
     })();
   }, [address, chainId, publicClient]);
 
+  // reveal bid handler
   async function reveal(item: any) {
     await writeContractAsync({
       address: CONTRACTS.auctionHouse.address,
@@ -67,20 +69,22 @@ export default function RevealPage() {
     setPending((p) => p.filter((x) => x.domain !== item.domain));
   }
 
+  // prevent Back button navigation
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePop = () => {
-        window.history.pushState(null, "", window.location.href);
+      window.history.pushState(null, "", window.location.href);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-    }, []);
+  }, []);
 
   return (
     <div className="flex justify-center pt-16 px-4">
-      <div className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
-        text-[var(--foreground)] p-10 space-y-8">
-
+      <div
+        className="max-w-3xl w-full rounded-xl border shadow-md bg-[var(--background)]
+        text-[var(--foreground)] p-10 space-y-8"
+      >
         {/* Header */}
         <div className="flex justify-between items-center">
           <button
@@ -101,9 +105,14 @@ export default function RevealPage() {
 
         <div className="space-y-4">
           {pending.map((item) => (
-            <div key={item.domain} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]">
+            <div
+              key={item.domain}
+              className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card-bg)]"
+            >
               <p className="font-semibold">{item.domain}</p>
-              <p className="text-sm opacity-70">Your Bid: {formatEther(BigInt(item.bidWei))} ETH</p>
+              <p className="text-sm opacity-70">
+                Your Bid: {formatEther(BigInt(item.bidWei))} ETH
+              </p>
 
               <button
                 onClick={() => reveal(item)}
