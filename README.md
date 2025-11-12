@@ -3,6 +3,9 @@
 A **self-sovereign Web3 domain system** that empowers users to **claim digital identity**, **transfer ownership trustlessly**, and **resolve names to wallets** on-chain.  
 Built to be **transparent**, **tamper-resistant**, and **user-first**, DDR merges the simplicity of Web2 naming with the integrity of decentralized infrastructure.
 
+[Website link](https://ddr-app-theawmaster-theawmasters-projects.vercel.app?_vercel_share=N6dw1QrNX39CIL2kzs3HwKLmoTguqhOE)
+
+[Demo Video](https://www.youtube.com/watch?v=umWyAbSIryA)
 ---
 
 ## Core Capabilities
